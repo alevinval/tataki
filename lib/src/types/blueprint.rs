@@ -1,11 +1,7 @@
-use chrono::DateTime;
-use chrono::Local;
-
 use crate::types::Duration;
 use crate::types::Priority;
 use crate::types::Recurrence;
 use crate::types::Slot;
-use crate::types::experimental::plan_entry::PlannedEntry;
 
 /// A template for creating recurring tasks or events.
 ///
@@ -66,10 +62,6 @@ impl Blueprint {
     pub const fn preferred_slot(&self) -> Slot {
         self.preferred_slot
     }
-
-    pub fn plan_for(&self, ts: DateTime<Local>) -> PlannedEntry {
-        PlannedEntry::new(self.id.clone(), self.estimated_duration, ts)
-    }
 }
 
 impl std::fmt::Display for Blueprint {
@@ -88,7 +80,6 @@ impl std::fmt::Display for Blueprint {
 #[cfg(test)]
 mod test {
 
-    use chrono::TimeZone;
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -128,18 +119,5 @@ mod test {
             Slot::Week(WeekSlot::workdays()),
         );
         assert_eq!("1 CRIT ^3mo 1h Mon-Fri", sut.to_string());
-    }
-
-    #[test]
-    fn test_plan_for() {
-        let sut = get_example_blueprint();
-        let ts = Local.with_ymd_and_hms(2026, 10, 23, 0, 0, 0).unwrap();
-
-        let actual = sut.plan_for(ts);
-
-        assert_eq!(
-            PlannedEntry::new(sut.id().to_string(), sut.estimated_duration(), ts),
-            actual
-        );
     }
 }
