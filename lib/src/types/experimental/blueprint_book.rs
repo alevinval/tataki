@@ -1,3 +1,5 @@
+use std::cmp;
+
 use chrono::DateTime;
 use chrono::Local;
 use chrono::TimeDelta;
@@ -11,7 +13,8 @@ pub struct BlueprintBook {
 }
 
 impl BlueprintBook {
-    pub const fn from(entries: Vec<Blueprint>) -> Self {
+    pub fn from(mut entries: Vec<Blueprint>) -> Self {
+        entries.sort_by_key(|b| cmp::Reverse(b.priority()));
         Self { entries }
     }
 
