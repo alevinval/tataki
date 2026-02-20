@@ -1,4 +1,3 @@
-use chrono::TimeDelta;
 pub use hour_slots::HourSlot;
 pub use week_slots::WeekSlot;
 
@@ -6,6 +5,7 @@ mod hour_slots;
 mod week_slots;
 
 use chrono::DateTime;
+use chrono::TimeDelta;
 use chrono::TimeZone;
 
 /// A time slot for scheduling affinity.
@@ -19,7 +19,7 @@ pub enum Slot {
 
 impl Slot {
     /// Returns if `ts` matches the affinity represented by the slot.
-    fn matches_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> bool {
+    pub fn matches_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> bool {
         match self {
             Slot::Hour(hour_slot) => hour_slot.matches_chrono(ts),
             Slot::Week(week_slot) => week_slot.matches_chrono(ts),
@@ -27,7 +27,7 @@ impl Slot {
     }
 
     /// Returns the [`TimeDelta`] that `ts` must advance to fit within the slot.
-    fn fwd_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
+    pub fn fwd_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
         match self {
             Slot::Hour(hour_slot) => hour_slot.fwd_delta_chrono(ts),
             Slot::Week(week_slot) => week_slot.fwd_delta_chrono(ts),
