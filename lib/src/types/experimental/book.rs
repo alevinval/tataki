@@ -4,7 +4,7 @@ use chrono::DateTime;
 use chrono::Local;
 use chrono::TimeDelta;
 
-use crate::generator::Generator;
+use crate::sequencer::Sequencer;
 use crate::types::Blueprint;
 
 /// Models a collection of blueprints.
@@ -23,10 +23,10 @@ impl Book {
         &self.blueprints
     }
 
-    pub fn spawn_generators(&self) -> Vec<Generator> {
+    pub fn spawn_sequencers(&self) -> Vec<(&Blueprint, Sequencer)> {
         self.blueprints
             .iter()
-            .map(Generator::from_blueprint)
+            .map(|b| (b, Sequencer::from_blueprint(b)))
             .collect()
     }
 

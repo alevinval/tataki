@@ -1,2 +1,2 @@
-mod generator;
+mod sequencer;
 mod types;
