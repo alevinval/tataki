@@ -64,8 +64,22 @@ mod test {
         let one_hour = Duration::of(1, TimeUnit::Hour);
 
         let sut = BlueprintBook::from(vec![
-            Blueprint::new("1", "Task A", one_hour, Priority::Crit, daily, eight_am),
-            Blueprint::new("2", "Task B", one_hour, Priority::Norm, daily, morning),
+            Blueprint::new(
+                "1".to_string(),
+                "Task A".to_string(),
+                one_hour,
+                Priority::Crit,
+                daily,
+                eight_am,
+            ),
+            Blueprint::new(
+                "2".to_string(),
+                "Task B".to_string(),
+                one_hour,
+                Priority::Norm,
+                daily,
+                morning,
+            ),
         ]);
 
         let ts = Local.with_ymd_and_hms(2025, 10, 23, 14, 0, 0).unwrap();

@@ -21,17 +21,17 @@ pub struct Blueprint {
 }
 
 impl Blueprint {
-    pub fn new<S: Into<String>>(
-        id: S,
-        description: S,
+    pub fn new(
+        id: String,
+        description: String,
         estimated_duration: Duration,
         priority: Priority,
         recurrence: Recurrence,
         preferred_slot: Slot,
     ) -> Self {
         Self {
-            id: id.into(),
-            description: description.into(),
+            id,
+            description,
             estimated_duration,
             priority,
             recurrence,
@@ -89,8 +89,8 @@ mod test {
 
     fn get_example_blueprint() -> Blueprint {
         Blueprint::new(
-            "1",
-            "Clean VAC filters",
+            "1".to_string(),
+            "Clean VAC filters".to_string(),
             Duration::hours(1),
             Priority::Idle,
             Recurrence::Period {
@@ -109,8 +109,8 @@ mod test {
         assert_eq!("1 IDLE ^1y 1h 10:00-13:00", sut.to_string());
 
         let sut = Blueprint::new(
-            "1",
-            "Clean VAC filters",
+            "1".to_string(),
+            "Clean VAC filters".to_string(),
             Duration::hours(1),
             Priority::Crit,
             Recurrence::Period {
