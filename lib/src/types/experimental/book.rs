@@ -23,10 +23,10 @@ impl Book {
         &self.blueprints
     }
 
-    pub fn spawn_sequencers(&self) -> Vec<(&Blueprint, Sequencer)> {
+    pub fn spawn_sequencers(&self) -> Vec<(Blueprint, Sequencer)> {
         self.blueprints
             .iter()
-            .map(|b| (b, Sequencer::from_blueprint(b)))
+            .map(|bp| (bp.clone(), Sequencer::from_blueprint(bp)))
             .collect()
     }
 
