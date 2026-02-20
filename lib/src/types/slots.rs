@@ -43,6 +43,13 @@ impl Slot {
             Slot::Week(slot) => slot.bwd_delta_chrono(ts),
         }
     }
+
+    pub fn backward_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
+        match self {
+            Slot::Hour(hour_slot) => hour_slot.backward_delta_chrono(ts),
+            Slot::Week(week_slot) => week_slot.backward_delta_chrono(ts),
+        }
+    }
 }
 
 impl std::fmt::Display for Slot {

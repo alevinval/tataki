@@ -103,6 +103,55 @@ impl WeekSlot {
     pub fn bwd_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
         TimeDelta::days(self.bwd_delta(ts.weekday().into()))
     }
+
+    /// Backward delta to snap to the beginning of the slot.
+    /// Returns days to go back to the start of the most recent slot.
+    pub fn backward_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
+        let curr: DayOfWeek = ts.weekday().into();
+        let delta = match self {
+            Self::Fixed { day } => (*day as i64 - curr as i64 + 7) % 7,
+            Self::Range { start, stop } => {
+                let start = *start as i64;
+                let stop = *stop as i64;
+                let curr = curr as i64;
+
+                if start <= stop {
+                    if curr < start {
+                        start - curr
+                    } else {
+                        curr - start
+                    }
+                } else {
+                    (curr - start + 7) % 7
+                }
+            }
+        };
+        TimeDelta::days(delta)
+    }
+
+    /// Backward delta to snap to the beginning of the slot.
+    /// Returns days to go back to the start of the most recent slot.
+    pub fn backward_delta(&self, src: DayOfWeek) -> i64 {
+        let delta = match self {
+            Self::Fixed { day } => (*day as i64 - src as i64 + 7) % 7,
+            Self::Range { start, stop } => {
+                let start = *start as i64;
+                let stop = *stop as i64;
+                let src = src as i64;
+
+                if start <= stop {
+                    if src < start {
+                        start - src
+                    } else {
+                        src - start
+                    }
+                } else {
+                    (src - start + 7) % 7
+                }
+            }
+        };
+        delta
+    }
 }
 
 impl std::fmt::Display for WeekSlot {
@@ -182,10 +231,30 @@ mod test {
 
             assert!(!sut.matches_chrono(input));
         }
+
+        #[test]
+        fn test_backward_delta_chrono() {
+            let sut = WeekSlot::Fixed {
+                day: DayOfWeek::Fri,
+            };
+
+            // Inside slot (Friday) - no backward delta needed
+            let input = d(2025, 10, 24, 14, 0, 0); // Friday
+            assert_eq!(TimeDelta::days(0), sut.backward_delta_chrono(input));
+
+            // Outside slot - go back to last Friday = 1 day
+            let input = d(2025, 10, 23, 14, 0, 0); // Thursday
+            assert_eq!(TimeDelta::days(1), sut.backward_delta_chrono(input));
+
+            // Outside slot - go back to last Friday = 3 days
+            let input = d(2025, 10, 21, 14, 0, 0); // Tuesday
+            assert_eq!(TimeDelta::days(3), sut.backward_delta_chrono(input));
+        }
     }
 
     mod range {
         use super::*;
+        use crate::test::d;
 
         #[test]
         fn test_matches_wrap_around() {
@@ -222,6 +291,55 @@ mod test {
             assert_eq!(5, sut.bwd_delta(DayOfWeek::Mon));
             assert_eq!(1, sut.bwd_delta(DayOfWeek::Thu));
             assert_eq!(3, sut.bwd_delta(DayOfWeek::Sat));
+        }
+
+        #[test]
+        fn test_backward_delta_chrono() {
+            let sut = WeekSlot::Range {
+                start: DayOfWeek::Wed,
+                stop: DayOfWeek::Fri,
+            };
+
+            // Inside range (Friday) - snap back to Wednesday start = 2 days
+            let input = d(2025, 10, 24, 14, 0, 0); // Friday
+            assert_eq!(TimeDelta::days(2), sut.backward_delta_chrono(input));
+
+            // Inside range (Wednesday) - snap back to Wednesday start = 0 days
+            let input = d(2025, 10, 22, 14, 0, 0); // Wednesday
+            assert_eq!(TimeDelta::days(0), sut.backward_delta_chrono(input));
+
+            // Before range (Monday) - go back to previous week's Wednesday = 2 days
+            let input = d(2025, 10, 20, 14, 0, 0); // Monday
+            assert_eq!(TimeDelta::days(2), sut.backward_delta_chrono(input));
+
+            // After range (Saturday) - go back to Wednesday (slot start) = 3 days
+            let input = d(2025, 10, 25, 14, 0, 0); // Saturday
+            assert_eq!(TimeDelta::days(3), sut.backward_delta_chrono(input));
+        }
+
+        #[test]
+        fn test_backward_delta_chrono_wrap_around() {
+            // Range wraps around weekend: Fri-Mon
+            let sut = WeekSlot::Range {
+                start: DayOfWeek::Fri,
+                stop: DayOfWeek::Mon,
+            };
+
+            // Inside range (Saturday) - snap back to Friday = 1 day
+            let input = d(2025, 10, 25, 14, 0, 0); // Saturday
+            assert_eq!(TimeDelta::days(1), sut.backward_delta_chrono(input));
+
+            // Inside range (Monday) - snap back to Friday = 3 days
+            let input = d(2025, 10, 20, 14, 0, 0); // Monday
+            assert_eq!(TimeDelta::days(3), sut.backward_delta_chrono(input));
+
+            // Outside range (Tuesday) - go back to Friday = 4 days
+            let input = d(2025, 10, 21, 14, 0, 0); // Tuesday
+            assert_eq!(TimeDelta::days(4), sut.backward_delta_chrono(input));
+
+            // Outside range (Wednesday) - go back to Friday = 5 days
+            let input = d(2025, 10, 22, 14, 0, 0); // Wednesday
+            assert_eq!(TimeDelta::days(5), sut.backward_delta_chrono(input));
         }
     }
 }

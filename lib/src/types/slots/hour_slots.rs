@@ -90,6 +90,40 @@ impl HourSlot {
     pub fn bwd_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
         TimeDelta::hours(self.bwd_delta(ts.hour()))
     }
+
+    /// Backward delta to snap to the beginning of the slot.
+    /// Returns hours to go back to the start of the most recent slot.
+    pub fn backward_delta_chrono<T: TimeZone>(&self, src: DateTime<T>) -> TimeDelta {
+        let curr = src.hour();
+        let delta = match self {
+            HourSlot::Fixed { hour } => (curr as i64 - *hour as i64 + 24) % 24,
+            HourSlot::Range { start, .. } => {
+                if curr < *start {
+                    (curr as i64 - *start as i64 + 24) % 24
+                } else {
+                    curr as i64 - *start as i64
+                }
+            }
+        };
+
+        TimeDelta::hours(delta)
+    }
+
+    /// Backward delta to snap to the beginning of the slot.
+    /// Returns 0 if currently inside the slot, otherwise hours to go back to
+    /// the start of the most recent slot.
+    pub fn backward_delta(&self, src: u32) -> i64 {
+        if self.matches(src) {
+            return 0;
+        }
+
+        let delta = match self {
+            HourSlot::Fixed { hour } => (src as i64 - *hour as i64 + 24) % 24,
+            HourSlot::Range { start, .. } => (src as i64 - *start as i64 + 24) % 24,
+        };
+
+        delta
+    }
 }
 
 impl std::fmt::Display for HourSlot {
@@ -141,6 +175,23 @@ mod test {
         }
 
         #[test]
+        fn test_backward_delta_chrono() {
+            let sut = HourSlot::Fixed { hour: 12 };
+
+            // Inside slot - no backward delta needed
+            let input = d(2025, 10, 23, 12, 0, 0);
+            assert_eq!(TimeDelta::hours(0), sut.backward_delta_chrono(input));
+
+            // Outside slot - go back to 12:00 (2 hours)
+            let input = d(2025, 10, 23, 14, 0, 0);
+            assert_eq!(TimeDelta::hours(2), sut.backward_delta_chrono(input));
+
+            // Outside slot - go back to yesterday's 12:00 (22 hours)
+            let input = d(2025, 10, 23, 10, 0, 0);
+            assert_eq!(TimeDelta::hours(22), sut.backward_delta_chrono(input));
+        }
+
+        #[test]
         fn test_chrono_interop() {
             let sut = HourSlot::Fixed { hour: 12 };
             let input = d(2025, 10, 23, 14, 0, 0);
@@ -155,6 +206,7 @@ mod test {
 
     mod range {
         use super::*;
+        use crate::test::d;
 
         #[test]
         fn test_matches() {
@@ -220,6 +272,26 @@ mod test {
                 stop: 15,
             };
             assert_eq!(6, sut.bwd_delta(18));
+        }
+
+        #[test]
+        fn test_backward_delta_chrono() {
+            let sut = HourSlot::Range {
+                start: 12,
+                stop: 15,
+            };
+
+            // Inside range - snap back to slot start (12:00)
+            let input = d(2025, 10, 23, 14, 0, 0);
+            assert_eq!(TimeDelta::hours(2), sut.backward_delta_chrono(input));
+
+            // Outside range (before) - go back to yesterday's 12:00 = 22 hours
+            let input = d(2025, 10, 23, 10, 0, 0);
+            assert_eq!(TimeDelta::hours(22), sut.backward_delta_chrono(input));
+
+            // Outside range (after) - go back to 12:00 same day = 6 hours
+            let input = d(2025, 10, 23, 18, 0, 0);
+            assert_eq!(TimeDelta::hours(6), sut.backward_delta_chrono(input));
         }
     }
 }
