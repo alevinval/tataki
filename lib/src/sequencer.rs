@@ -31,7 +31,8 @@ impl Sequencer {
             slot,
             recurrence,
             remaining: recurrence.remaining(),
-            next_mininum_ts: last_committed_at.map(|ts| recurrence.spaced(ts)),
+            next_mininum_ts: last_committed_at
+                .map(|ts| recurrence.spaced(ts) - slot.bwd_delta_chrono(ts)),
         }
     }
 
@@ -78,7 +79,7 @@ impl Sequencer {
             *r = r.saturating_sub(1);
         }
 
-        self.next_mininum_ts = Some(self.recurrence.spaced(ts));
+        self.next_mininum_ts = Some(self.recurrence.spaced(ts) - self.slot.bwd_delta_chrono(ts));
     }
 }
 
