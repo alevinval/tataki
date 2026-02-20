@@ -4,6 +4,4 @@ members = ["cli", "lib"]
 
 [workspace.dependencies]
 chrono = "0.4.43"
-
-[workspace.dev-dependencies]
 pretty_assertions = "1"
