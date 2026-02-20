@@ -1,6 +1,7 @@
 mod blueprint;
 mod days;
 mod duration;
+pub mod experimental;
 mod priority;
 mod recurrence;
 mod slots;
