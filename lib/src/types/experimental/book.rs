@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Local;
 use chrono::TimeDelta;
 
+use crate::generator::Generator;
 use crate::types::Blueprint;
 
 /// Models a collection of blueprints.
@@ -20,6 +21,13 @@ impl Book {
 
     pub fn blueprints(&self) -> &[Blueprint] {
         &self.blueprints
+    }
+
+    pub fn spawn_generators(&self) -> Vec<Generator> {
+        self.blueprints
+            .iter()
+            .map(Generator::from_blueprint)
+            .collect()
     }
 
     pub fn min_fwd_delta_chrono(&self, ts: DateTime<Local>) -> Option<TimeDelta> {
