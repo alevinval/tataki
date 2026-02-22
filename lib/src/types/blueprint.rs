@@ -85,6 +85,7 @@ mod test {
 
     use super::*;
     use crate::types::TimeUnit;
+    use crate::types::WeekSlot;
 
     #[test]
     fn test_display() {
@@ -100,5 +101,17 @@ mod test {
         );
 
         assert_eq!("1 IDLE ^1y 1h 10:00-13:00", sut.to_string());
+
+        let sut = Blueprint::new(
+            "1",
+            "Clean VAC filters",
+            Duration::hours(1),
+            Priority::Crit,
+            Recurrence::Period {
+                spacing: Duration::of(3, TimeUnit::Month),
+            },
+            Slot::Week(WeekSlot::workdays()),
+        );
+        assert_eq!("1 CRIT ^3mo 1h Mon-Fri", sut.to_string());
     }
 }

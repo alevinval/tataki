@@ -12,4 +12,5 @@ pub use priority::Priority;
 pub use recurrence::Recurrence;
 pub use slots::HourSlot;
 pub use slots::Slot;
+pub use slots::WeekSlot;
 pub use timeunit::TimeUnit;
