@@ -2,6 +2,7 @@ use crate::types::Duration;
 use crate::types::HourSlot;
 use crate::types::Priority;
 use crate::types::Recurrence;
+use crate::types::Slot;
 
 /// A template for creating recurring tasks or events.
 ///
@@ -17,7 +18,7 @@ pub struct Blueprint {
     estimated_duration: Duration,
     priority: Priority,
     recurrence: Recurrence,
-    preferred_slot: HourSlot,
+    preferred_slot: Slot,
 }
 
 impl Blueprint {
@@ -27,7 +28,7 @@ impl Blueprint {
         estimated_duration: Duration,
         priority: Priority,
         recurrence: Recurrence,
-        preferred_slot: HourSlot,
+        preferred_slot: Slot,
     ) -> Self {
         Self {
             id: id.into(),
@@ -59,7 +60,7 @@ impl Blueprint {
         self.recurrence
     }
 
-    pub fn preferred_slot(&self) -> HourSlot {
+    pub fn preferred_slot(&self) -> Slot {
         self.preferred_slot
     }
 }
@@ -95,7 +96,7 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::of(1, TimeUnit::Year),
             },
-            HourSlot::Range { start: 10, end: 13 },
+            Slot::Hour(HourSlot::Range { start: 10, end: 13 }),
         );
 
         assert_eq!("1 IDLE ^1y 1h 10:00-13:00", sut.to_string());
