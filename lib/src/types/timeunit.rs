@@ -22,10 +22,10 @@ impl TimeUnit {
     pub const fn as_str(&self) -> &'static str {
         match self {
             TimeUnit::Second => "s",
-            TimeUnit::Minute => "m",
+            TimeUnit::Minute => "min",
             TimeUnit::Hour => "h",
             TimeUnit::Day => "d",
-            TimeUnit::Month => "m",
+            TimeUnit::Month => "mo",
             TimeUnit::Year => "y",
         }
     }
