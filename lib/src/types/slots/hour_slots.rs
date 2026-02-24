@@ -27,14 +27,6 @@ impl HourSlot {
             }
         }
     }
-
-    /// Validates that all hours are within 0-23.
-    pub fn is_valid(&self) -> bool {
-        match self {
-            HourSlot::Fixed { hour } => *hour < 24,
-            HourSlot::Range { start, end } => *start < 24 && *end < 24,
-        }
-    }
 }
 
 impl std::fmt::Display for HourSlot {
@@ -58,15 +50,6 @@ mod test {
             use super::*;
 
             #[test]
-            fn test_is_valid() {
-                let sut = HourSlot::Fixed { hour: 0 };
-                assert!(sut.is_valid());
-
-                let sut = HourSlot::Fixed { hour: 24 };
-                assert!(!sut.is_valid());
-            }
-
-            #[test]
             fn test_matches() {
                 let sut = HourSlot::Fixed { hour: 12 };
                 assert!(sut.matches(12));
@@ -77,19 +60,6 @@ mod test {
 
         mod range {
             use super::*;
-
-            #[test]
-            fn test_is_valid() {
-                let sut = HourSlot::Range { start: 0, end: 23 };
-                assert!(sut.is_valid());
-
-                // Wraps-around (e.g. 8:00 till 03:00 of the next day)
-                let sut = HourSlot::Range { start: 8, end: 3 };
-                assert!(sut.is_valid());
-
-                let sut = HourSlot::Range { start: 8, end: 8 };
-                assert!(sut.is_valid());
-            }
 
             #[test]
             fn test_matches() {
