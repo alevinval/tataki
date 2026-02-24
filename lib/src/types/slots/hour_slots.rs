@@ -27,6 +27,31 @@ impl HourSlot {
             }
         }
     }
+
+    /// Computes the forward delta in hours, if the input does not fit the slot,
+    /// rather than returning negative, it computes the delta till the next
+    /// day.
+    pub const fn forward_delta(&self, src: u8) -> u8 {
+        let pivot = match self {
+            HourSlot::Fixed { hour } => {
+                if src <= *hour {
+                    *hour
+                } else {
+                    *hour + 24
+                }
+            }
+            HourSlot::Range { start, end } => {
+                if src <= *start {
+                    *start
+                } else if src > *end {
+                    *start + 24
+                } else {
+                    src
+                }
+            }
+        };
+        pivot - src
+    }
 }
 
 impl std::fmt::Display for HourSlot {
@@ -47,6 +72,7 @@ mod test {
         use super::*;
 
         mod fixed {
+
             use super::*;
 
             #[test]
@@ -55,6 +81,18 @@ mod test {
                 assert!(sut.matches(12));
                 assert!(!sut.matches(11));
                 assert!(!sut.matches(13));
+            }
+
+            #[test]
+            fn test_forward_delta() {
+                let sut = HourSlot::Fixed { hour: 12 };
+                assert_eq!(4, sut.forward_delta(8));
+
+                let sut = HourSlot::Fixed { hour: 12 };
+                assert_eq!(0, sut.forward_delta(12));
+
+                let sut = HourSlot::Fixed { hour: 12 };
+                assert_eq!(22, sut.forward_delta(14));
             }
         }
 
@@ -71,6 +109,21 @@ mod test {
 
                 assert!(!sut.matches(4));
                 assert!(!sut.matches(7));
+            }
+
+            #[test]
+            fn test_forward_delta() {
+                let sut = HourSlot::Range { start: 12, end: 15 };
+                assert_eq!(4, sut.forward_delta(8));
+
+                let sut = HourSlot::Range { start: 12, end: 15 };
+                assert_eq!(0, sut.forward_delta(12));
+
+                let sut = HourSlot::Range { start: 12, end: 15 };
+                assert_eq!(0, sut.forward_delta(14));
+
+                let sut = HourSlot::Range { start: 12, end: 15 };
+                assert_eq!(18, sut.forward_delta(18));
             }
         }
     }
