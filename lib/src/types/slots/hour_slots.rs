@@ -1,3 +1,5 @@
+use chrono::TimeDelta;
+
 /// Represents a specific hour or hour range in a day (0-23).
 ///
 /// Used to specify when a [`Blueprint`](crate::types::Blueprint) has
@@ -5,15 +7,15 @@
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum HourSlot {
     /// A specific hour of the day.
-    Fixed { hour: u8 },
+    Fixed { hour: u32 },
 
     /// An inclusive range of hours `[start, end]`
-    Range { start: u8, end: u8 },
+    Range { start: u32, end: u32 },
 }
 
 impl HourSlot {
     /// Returns true if the given hour (0-23) falls within this slot.
-    pub fn matches(&self, hour: u8) -> bool {
+    pub fn matches(&self, hour: u32) -> bool {
         debug_assert!(hour < 24, "hour must be <24, instead it was {hour}");
 
         match self {
@@ -31,7 +33,7 @@ impl HourSlot {
     /// Computes the forward delta in hours, if the input does not fit the slot,
     /// rather than returning negative, it computes the delta till the next
     /// day.
-    pub const fn forward_delta(&self, src: u8) -> u8 {
+    pub const fn forward_delta(&self, src: u32) -> TimeDelta {
         let pivot = match self {
             HourSlot::Fixed { hour } => {
                 if src <= *hour {
@@ -50,7 +52,7 @@ impl HourSlot {
                 }
             }
         };
-        pivot - src
+        TimeDelta::hours(pivot as i64 - src as i64)
     }
 }
 
@@ -86,13 +88,13 @@ mod test {
             #[test]
             fn test_forward_delta() {
                 let sut = HourSlot::Fixed { hour: 12 };
-                assert_eq!(4, sut.forward_delta(8));
+                assert_eq!(TimeDelta::hours(4), sut.forward_delta(8));
 
                 let sut = HourSlot::Fixed { hour: 12 };
-                assert_eq!(0, sut.forward_delta(12));
+                assert_eq!(TimeDelta::hours(0), sut.forward_delta(12));
 
                 let sut = HourSlot::Fixed { hour: 12 };
-                assert_eq!(22, sut.forward_delta(14));
+                assert_eq!(TimeDelta::hours(22), sut.forward_delta(14));
             }
         }
 
@@ -114,16 +116,16 @@ mod test {
             #[test]
             fn test_forward_delta() {
                 let sut = HourSlot::Range { start: 12, end: 15 };
-                assert_eq!(4, sut.forward_delta(8));
+                assert_eq!(TimeDelta::hours(4), sut.forward_delta(8));
 
                 let sut = HourSlot::Range { start: 12, end: 15 };
-                assert_eq!(0, sut.forward_delta(12));
+                assert_eq!(TimeDelta::hours(0), sut.forward_delta(12));
 
                 let sut = HourSlot::Range { start: 12, end: 15 };
-                assert_eq!(0, sut.forward_delta(14));
+                assert_eq!(TimeDelta::hours(0), sut.forward_delta(14));
 
                 let sut = HourSlot::Range { start: 12, end: 15 };
-                assert_eq!(18, sut.forward_delta(18));
+                assert_eq!(TimeDelta::hours(18), sut.forward_delta(18));
             }
         }
     }

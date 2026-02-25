@@ -22,7 +22,7 @@ impl Slot {
     /// Returns if the timestamp matches the affinity represented by the slot.
     fn matches<T: TimeZone>(&self, ts: DateTime<T>) -> bool {
         match self {
-            Slot::Hour(hour_slot) => hour_slot.matches(ts.hour() as u8),
+            Slot::Hour(hour_slot) => hour_slot.matches(ts.hour()),
             Slot::Week(week_slot) => week_slot.matches(ts.weekday().into()),
         }
     }
