@@ -58,6 +58,10 @@ impl HourSlot {
         pivot as i64 - src as i64
     }
 
+    pub fn matches_chrono<T: TimeZone>(&self, src: DateTime<T>) -> bool {
+        self.matches(src.hour())
+    }
+
     pub fn fwd_delta_chrono<T: TimeZone>(&self, src: DateTime<T>) -> TimeDelta {
         TimeDelta::hours(self.fwd_delta(src.hour()))
     }
@@ -82,6 +86,8 @@ mod test {
 
         mod fixed {
 
+            use chrono::Utc;
+
             use super::*;
 
             #[test]
@@ -102,6 +108,18 @@ mod test {
 
                 let sut = HourSlot::Fixed { hour: 12 };
                 assert_eq!(22, sut.fwd_delta(14));
+            }
+
+            #[test]
+            fn test_chrono_interop() {
+                let sut = HourSlot::Fixed { hour: 12 };
+                let input = Utc.with_ymd_and_hms(2025, 10, 23, 14, 0, 0).unwrap();
+
+                assert_eq!(TimeDelta::hours(22), sut.fwd_delta_chrono(input));
+
+                assert!(sut.matches_chrono(input - TimeDelta::hours(2)));
+
+                assert!(!sut.matches_chrono(input));
             }
         }
 
