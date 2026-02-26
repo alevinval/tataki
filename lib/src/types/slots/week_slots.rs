@@ -9,32 +9,32 @@ use crate::types::days::DayOfWeek;
 pub enum WeekSlot {
     /// A specific day of the week.
     Fixed { day: DayOfWeek },
-    /// An inclusive range of days.
-    Range { from: DayOfWeek, to: DayOfWeek },
+    /// An inclusive range of days `[start, stop]`
+    Range { start: DayOfWeek, stop: DayOfWeek },
 }
 
 impl WeekSlot {
     /// Returns a range that covers all working days.
     pub const fn workdays() -> Self {
         Self::Range {
-            from: DayOfWeek::Mon,
-            to: DayOfWeek::Fri,
+            start: DayOfWeek::Mon,
+            stop: DayOfWeek::Fri,
         }
     }
 
     /// Returns a range that covers the weekend.
     pub const fn weekend() -> Self {
         Self::Range {
-            from: DayOfWeek::Sat,
-            to: DayOfWeek::Sun,
+            start: DayOfWeek::Sat,
+            stop: DayOfWeek::Sun,
         }
     }
 
     /// Returns a range that spans a full week
     pub const fn full() -> Self {
         Self::Range {
-            from: DayOfWeek::Mon,
-            to: DayOfWeek::Sun,
+            start: DayOfWeek::Mon,
+            stop: DayOfWeek::Sun,
         }
     }
 
@@ -42,11 +42,11 @@ impl WeekSlot {
     pub fn matches(&self, day: DayOfWeek) -> bool {
         match self {
             WeekSlot::Fixed { day: d } => *d == day,
-            WeekSlot::Range { from, to } => {
-                if *from <= *to {
-                    (*from..=*to).contains(&day)
+            WeekSlot::Range { start, stop } => {
+                if *start <= *stop {
+                    (*start..=*stop).contains(&day)
                 } else {
-                    day >= *from || day <= *to
+                    day >= *start || day <= *stop
                 }
             }
         }
@@ -62,14 +62,11 @@ impl WeekSlot {
                 let day = *day as u32;
                 if src <= day { day } else { day + 7 }
             }
-            Self::Range {
-                from: start,
-                to: end,
-            } => {
-                let (start, end) = (*start as u32, *end as u32);
+            Self::Range { start, stop } => {
+                let (start, stop) = (*start as u32, *stop as u32);
                 if src <= start {
                     start
-                } else if src > end {
+                } else if src > stop {
                     start + 7
                 } else {
                     src
@@ -92,7 +89,7 @@ impl std::fmt::Display for WeekSlot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             WeekSlot::Fixed { day } => write!(f, "{}", day),
-            WeekSlot::Range { from, to } => write!(f, "{}-{}", from, to),
+            WeekSlot::Range { start, stop } => write!(f, "{}-{}", start, stop),
         }
     }
 }
@@ -159,8 +156,8 @@ mod test {
             #[test]
             fn test_matches_wrap_around() {
                 let sut = WeekSlot::Range {
-                    from: DayOfWeek::Fri,
-                    to: DayOfWeek::Mon,
+                    start: DayOfWeek::Fri,
+                    stop: DayOfWeek::Mon,
                 };
                 assert!(sut.matches(DayOfWeek::Fri));
                 assert!(sut.matches(DayOfWeek::Sat));
@@ -174,8 +171,8 @@ mod test {
             #[test]
             fn test_fwd_delta() {
                 let sut = WeekSlot::Range {
-                    from: DayOfWeek::Wed,
-                    to: DayOfWeek::Fri,
+                    start: DayOfWeek::Wed,
+                    stop: DayOfWeek::Fri,
                 };
                 assert_eq!(2, sut.fwd_delta(DayOfWeek::Mon));
                 assert_eq!(0, sut.fwd_delta(DayOfWeek::Thu));

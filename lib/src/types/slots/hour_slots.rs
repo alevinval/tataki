@@ -12,8 +12,8 @@ pub enum HourSlot {
     /// A specific hour of the day.
     Fixed { hour: u32 },
 
-    /// An inclusive range of hours `[start, end]`
-    Range { start: u32, end: u32 },
+    /// An inclusive range of hours `[start, stop]`
+    Range { start: u32, stop: u32 },
 }
 
 impl HourSlot {
@@ -23,11 +23,11 @@ impl HourSlot {
 
         match self {
             HourSlot::Fixed { hour: h } => *h == hour,
-            HourSlot::Range { start, end } => {
-                if start < end {
-                    (*start..=*end).contains(&hour)
+            HourSlot::Range { start, stop } => {
+                if start < stop {
+                    (*start..=*stop).contains(&hour)
                 } else {
-                    hour >= *start || hour <= *end
+                    hour >= *start || hour <= *stop
                 }
             }
         }
@@ -45,10 +45,10 @@ impl HourSlot {
                     *hour + 24
                 }
             }
-            HourSlot::Range { start, end } => {
+            HourSlot::Range { start, stop } => {
                 if src <= *start {
                     *start
-                } else if src > *end {
+                } else if src > *stop {
                     *start + 24
                 } else {
                     src
@@ -71,7 +71,7 @@ impl std::fmt::Display for HourSlot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             HourSlot::Fixed { hour } => write!(f, "{:02}:00", hour),
-            HourSlot::Range { start, end } => write!(f, "{:02}:00-{:02}:00", start, end),
+            HourSlot::Range { start, stop } => write!(f, "{:02}:00-{:02}:00", start, stop),
         }
     }
 }
@@ -128,7 +128,7 @@ mod test {
 
             #[test]
             fn test_matches() {
-                let sut = HourSlot::Range { start: 8, end: 3 };
+                let sut = HourSlot::Range { start: 8, stop: 3 };
                 assert!(sut.matches(8));
                 assert!(sut.matches(23));
                 assert!(sut.matches(0));
@@ -140,16 +140,28 @@ mod test {
 
             #[test]
             fn test_fwd_delta() {
-                let sut = HourSlot::Range { start: 12, end: 15 };
+                let sut = HourSlot::Range {
+                    start: 12,
+                    stop: 15,
+                };
                 assert_eq!(4, sut.fwd_delta(8));
 
-                let sut = HourSlot::Range { start: 12, end: 15 };
+                let sut = HourSlot::Range {
+                    start: 12,
+                    stop: 15,
+                };
                 assert_eq!(0, sut.fwd_delta(12));
 
-                let sut = HourSlot::Range { start: 12, end: 15 };
+                let sut = HourSlot::Range {
+                    start: 12,
+                    stop: 15,
+                };
                 assert_eq!(0, sut.fwd_delta(14));
 
-                let sut = HourSlot::Range { start: 12, end: 15 };
+                let sut = HourSlot::Range {
+                    start: 12,
+                    stop: 15,
+                };
                 assert_eq!(18, sut.fwd_delta(18));
             }
         }

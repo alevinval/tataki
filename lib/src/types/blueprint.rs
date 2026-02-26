@@ -97,7 +97,10 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::of(1, TimeUnit::Year),
             },
-            Slot::Hour(HourSlot::Range { start: 10, end: 13 }),
+            Slot::Hour(HourSlot::Range {
+                start: 10,
+                stop: 13,
+            }),
         );
 
         assert_eq!("1 IDLE ^1y 1h 10:00-13:00", sut.to_string());
