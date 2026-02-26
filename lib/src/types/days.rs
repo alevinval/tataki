@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use chrono::Weekday;
 
 /// Models the days of the week.
@@ -48,6 +50,29 @@ impl From<Weekday> for DayOfWeek {
     }
 }
 
+impl From<u32> for DayOfWeek {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => DayOfWeek::Mon,
+            1 => DayOfWeek::Tue,
+            2 => DayOfWeek::Wed,
+            3 => DayOfWeek::Thu,
+            4 => DayOfWeek::Fri,
+            5 => DayOfWeek::Sat,
+            6 => DayOfWeek::Sun,
+            _ => panic!("bug"),
+        }
+    }
+}
+
+impl Add<u32> for DayOfWeek {
+    type Output = DayOfWeek;
+
+    fn add(self, rhs: u32) -> Self::Output {
+        ((self as u32 + rhs) % 7).into()
+    }
+}
+
 #[cfg(test)]
 mod test {
 
@@ -73,5 +98,14 @@ mod test {
         assert_eq!(4u32, DayOfWeek::Fri as u32);
         assert_eq!(5u32, DayOfWeek::Sat as u32);
         assert_eq!(6u32, DayOfWeek::Sun as u32);
+    }
+
+    #[test]
+    fn test_dayofweek_add() {
+        assert_eq!(DayOfWeek::Tue, DayOfWeek::Mon + 1);
+        assert_eq!(DayOfWeek::Wed, DayOfWeek::Mon + 2);
+        assert_eq!(DayOfWeek::Thu, DayOfWeek::Mon + 3);
+        assert_eq!(DayOfWeek::Mon, DayOfWeek::Mon + 7);
+        assert_eq!(DayOfWeek::Tue, DayOfWeek::Mon + 8);
     }
 }
