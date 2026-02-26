@@ -5,13 +5,13 @@ use chrono::Weekday;
 /// The natural ordering follows the alphabetical order based on variant names.
 #[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone, Copy)]
 pub enum DayOfWeek {
-    Mon,
-    Tue,
-    Wed,
-    Thu,
-    Fri,
-    Sat,
-    Sun,
+    Mon = 0,
+    Tue = 1,
+    Wed = 2,
+    Thu = 3,
+    Fri = 4,
+    Sat = 5,
+    Sun = 6,
 }
 
 impl DayOfWeek {
@@ -62,5 +62,16 @@ mod test {
         assert!(DayOfWeek::Fri < DayOfWeek::Sat);
         assert!(DayOfWeek::Sat < DayOfWeek::Sun);
         assert!(DayOfWeek::Sun == DayOfWeek::Sun);
+    }
+
+    #[test]
+    fn test_dayofweek_u32() {
+        assert_eq!(0u32, DayOfWeek::Mon as u32);
+        assert_eq!(1u32, DayOfWeek::Tue as u32);
+        assert_eq!(2u32, DayOfWeek::Wed as u32);
+        assert_eq!(3u32, DayOfWeek::Thu as u32);
+        assert_eq!(4u32, DayOfWeek::Fri as u32);
+        assert_eq!(5u32, DayOfWeek::Sat as u32);
+        assert_eq!(6u32, DayOfWeek::Sun as u32);
     }
 }
