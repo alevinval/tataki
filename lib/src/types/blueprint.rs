@@ -48,19 +48,19 @@ impl Blueprint {
         &self.description
     }
 
-    pub fn estimated_duration(&self) -> Duration {
+    pub const fn estimated_duration(&self) -> Duration {
         self.estimated_duration
     }
 
-    pub fn priority(&self) -> Priority {
+    pub const fn priority(&self) -> Priority {
         self.priority
     }
 
-    pub fn recurrence(&self) -> Recurrence {
+    pub const fn recurrence(&self) -> Recurrence {
         self.recurrence
     }
 
-    pub fn preferred_slot(&self) -> Slot {
+    pub const fn preferred_slot(&self) -> Slot {
         self.preferred_slot
     }
 }
