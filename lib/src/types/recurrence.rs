@@ -19,6 +19,20 @@ pub enum Recurrence {
     Period { spacing: Duration },
 }
 
+impl Recurrence {
+    /// Returns the number of remaining occurrences.
+    ///
+    /// Returns `Some(n)` for a finite number, or `None` for infinite
+    /// repetitions.
+    pub const fn remaining(self) -> Option<usize> {
+        match self {
+            Recurrence::Once => Some(1),
+            Recurrence::Times { count, .. } => Some(count),
+            Recurrence::Period { .. } => None,
+        }
+    }
+}
+
 impl std::fmt::Display for Recurrence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let args = match self {
@@ -39,7 +53,7 @@ mod test {
     use crate::types::TimeUnit;
 
     #[test]
-    fn display() {
+    fn test_display() {
         let sut = Recurrence::Once;
         assert_eq!("^1", sut.to_string());
 
@@ -53,5 +67,22 @@ mod test {
             spacing: Duration::of(3, TimeUnit::Year),
         };
         assert_eq!("^3y", sut.to_string());
+    }
+
+    #[test]
+    fn test_remaining() {
+        let sut = Recurrence::Once;
+        assert_eq!(Some(1), sut.remaining());
+
+        let sut = Recurrence::Period {
+            spacing: Duration::days(1),
+        };
+        assert_eq!(None, sut.remaining());
+
+        let sut = Recurrence::Times {
+            count: 7,
+            spacing: Duration::days(1),
+        };
+        assert_eq!(Some(7), sut.remaining());
     }
 }
