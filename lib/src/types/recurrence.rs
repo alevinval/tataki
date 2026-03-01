@@ -1,3 +1,6 @@
+use chrono::DateTime;
+use chrono::Local;
+
 use crate::types::Duration;
 
 /// Recurrence of an event.
@@ -31,6 +34,16 @@ impl Recurrence {
             Recurrence::Period { .. } => None,
         }
     }
+
+    /// Returns a `ts` with the spacing of the recurrence applied.
+    pub fn spaced(self, ts: DateTime<Local>) -> DateTime<Local> {
+        match self {
+            Recurrence::Once => ts,
+            Recurrence::Times { spacing, .. } | Recurrence::Period { spacing } => {
+                ts + spacing.timedelta()
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for Recurrence {
@@ -48,6 +61,9 @@ impl std::fmt::Display for Recurrence {
 
 #[cfg(test)]
 mod test {
+
+    use chrono::TimeDelta;
+    use chrono::TimeZone;
 
     use super::*;
     use crate::types::TimeUnit;
@@ -84,5 +100,24 @@ mod test {
             spacing: Duration::days(1),
         };
         assert_eq!(Some(7), sut.remaining());
+    }
+
+    #[test]
+    fn test_spaced() {
+        let ts = Local.with_ymd_and_hms(2026, 10, 23, 0, 0, 0).unwrap();
+
+        let sut = Recurrence::Once;
+        assert_eq!(ts, sut.spaced(ts));
+
+        let sut = Recurrence::Period {
+            spacing: Duration::days(1),
+        };
+        assert_eq!(ts + TimeDelta::days(1), sut.spaced(ts));
+
+        let sut = Recurrence::Times {
+            count: 7,
+            spacing: Duration::days(3),
+        };
+        assert_eq!(ts + TimeDelta::days(3), sut.spaced(ts));
     }
 }
