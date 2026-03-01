@@ -1,9 +1,7 @@
 use chrono::DateTime;
 use chrono::Local;
-use chrono::TimeZone;
 
 use crate::types::Duration;
-use crate::types::HourSlot;
 use crate::types::Priority;
 use crate::types::Recurrence;
 use crate::types::Slot;
@@ -90,9 +88,11 @@ impl std::fmt::Display for Blueprint {
 #[cfg(test)]
 mod test {
 
+    use chrono::TimeZone;
     use pretty_assertions::assert_eq;
 
     use super::*;
+    use crate::types::HourSlot;
     use crate::types::TimeUnit;
     use crate::types::WeekSlot;
 
