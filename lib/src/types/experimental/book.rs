@@ -8,22 +8,22 @@ use crate::types::Blueprint;
 
 /// Models a collection of blueprints.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct BlueprintBook {
-    entries: Vec<Blueprint>,
+pub struct Book {
+    blueprints: Vec<Blueprint>,
 }
 
-impl BlueprintBook {
-    pub fn from(mut entries: Vec<Blueprint>) -> Self {
-        entries.sort_by_key(|b| cmp::Reverse(b.priority()));
-        Self { entries }
+impl Book {
+    pub fn new(mut blueprints: Vec<Blueprint>) -> Self {
+        blueprints.sort_by_key(|b| cmp::Reverse(b.priority()));
+        Self { blueprints }
     }
 
-    pub fn entries(&self) -> &[Blueprint] {
-        &self.entries
+    pub fn blueprints(&self) -> &[Blueprint] {
+        &self.blueprints
     }
 
     pub fn min_fwd_delta_chrono(&self, ts: DateTime<Local>) -> Option<TimeDelta> {
-        self.entries
+        self.blueprints
             .iter()
             .map(|blueprint| blueprint.preferred_slot().fwd_delta_chrono(ts))
             .filter(|delta| !delta.is_zero())
@@ -31,9 +31,9 @@ impl BlueprintBook {
     }
 }
 
-impl std::fmt::Display for BlueprintBook {
+impl std::fmt::Display for Book {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for bp in &self.entries {
+        for bp in &self.blueprints {
             bp.fmt(f)?;
             f.write_str("\n")?;
         }
@@ -54,7 +54,7 @@ mod test {
     use crate::types::Recurrence;
     use crate::types::Slot;
     use crate::types::TimeUnit;
-    use crate::types::experimental::blueprint_book::BlueprintBook;
+    use crate::types::experimental::book::Book;
 
     #[test]
     fn test_min_fwd_delta_chrono() {
@@ -66,7 +66,7 @@ mod test {
 
         let one_hour = Duration::of(1, TimeUnit::Hour);
 
-        let sut = BlueprintBook::from(vec![
+        let sut = Book::new(vec![
             Blueprint::new(
                 "1".to_string(),
                 "Task A".to_string(),

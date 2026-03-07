@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use chrono::Local;
 
-pub mod blueprint_book;
+pub mod book;
 pub mod plan;
 pub mod plan_entry;
 
