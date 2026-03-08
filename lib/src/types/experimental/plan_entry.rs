@@ -5,13 +5,13 @@ use crate::types::Duration;
 
 /// Models an instance of a blueprint.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct PlannedEntry {
+pub struct PlanEntry {
     blueprint_id: String,
     planned_for: DateTime<Local>,
     duration: Duration,
 }
 
-impl PlannedEntry {
+impl PlanEntry {
     pub const fn new(
         blueprint_id: String,
         duration: Duration,

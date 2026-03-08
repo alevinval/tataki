@@ -1,12 +1,12 @@
-use crate::types::experimental::plan_entry::PlannedEntry;
+use crate::types::experimental::plan_entry::PlanEntry;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Plan {
-    entries: Vec<PlannedEntry>,
+    entries: Vec<PlanEntry>,
 }
 
 impl Plan {
-    pub fn from(entries: Vec<PlannedEntry>) -> Self {
+    pub fn new(entries: Vec<PlanEntry>) -> Self {
         Self { entries }
     }
 
