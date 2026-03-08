@@ -6,6 +6,7 @@ use chrono::TimeDelta;
 
 use crate::sequencer::Sequencer;
 use crate::types::Blueprint;
+use crate::types::experimental::journal::Journal;
 
 /// Models a collection of blueprints.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -23,10 +24,10 @@ impl Book {
         &self.blueprints
     }
 
-    pub fn spawn_sequencers(&self) -> Vec<(Blueprint, Sequencer)> {
+    pub fn spawn_sequencers(&self, journal: &Journal) -> Vec<(Blueprint, Sequencer)> {
         self.blueprints
             .iter()
-            .map(|bp| (bp.clone(), Sequencer::from_blueprint(bp)))
+            .map(|bp| (bp.clone(), Sequencer::from(bp, journal)))
             .collect()
     }
 
