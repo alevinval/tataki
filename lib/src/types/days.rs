@@ -60,7 +60,7 @@ impl From<u32> for DayOfWeek {
             4 => DayOfWeek::Fri,
             5 => DayOfWeek::Sat,
             6 => DayOfWeek::Sun,
-            _ => panic!("bug"),
+            n => panic!("unexpected dayofweek={n}"),
         }
     }
 }
