@@ -21,16 +21,26 @@ impl Slot {
     /// Returns if `ts` matches the affinity represented by the slot.
     pub fn matches_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> bool {
         match self {
-            Slot::Hour(hour_slot) => hour_slot.matches_chrono(ts),
-            Slot::Week(week_slot) => week_slot.matches_chrono(ts),
+            Slot::Hour(slot) => slot.matches_chrono(ts),
+            Slot::Week(slot) => slot.matches_chrono(ts),
         }
     }
 
-    /// Returns the [`TimeDelta`] that `ts` must advance to fit within the slot.
+    /// Returns the [`TimeDelta`] that `ts` must advance to fit within the
+    /// initial boundary of the slot.
     pub fn fwd_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
         match self {
-            Slot::Hour(hour_slot) => hour_slot.fwd_delta_chrono(ts),
-            Slot::Week(week_slot) => week_slot.fwd_delta_chrono(ts),
+            Slot::Hour(slot) => slot.fwd_delta_chrono(ts),
+            Slot::Week(slot) => slot.fwd_delta_chrono(ts),
+        }
+    }
+
+    /// Returns the [`TimeDelta`] that `ts` must recede to fit within the
+    /// initial boundary of the slot.
+    pub fn bwd_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
+        match self {
+            Slot::Hour(slot) => slot.bwd_delta_chrono(ts),
+            Slot::Week(slot) => slot.bwd_delta_chrono(ts),
         }
     }
 }
