@@ -76,12 +76,16 @@ impl WeekSlot {
         pivot as i64 - src as i64
     }
 
-    pub fn matches_chrono<T: TimeZone>(&self, src: DateTime<T>) -> bool {
-        self.matches(src.weekday().into())
+    pub fn matches_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> bool {
+        self.matches(ts.weekday().into())
     }
 
-    pub fn fwd_delta_chrono<T: TimeZone>(&self, src: DateTime<T>) -> TimeDelta {
-        TimeDelta::days(self.fwd_delta(src.weekday().into()))
+    pub fn fwd_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
+        TimeDelta::days(self.fwd_delta(ts.weekday().into()))
+    }
+
+    pub fn backward_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
+        TimeDelta::days(7 - self.fwd_delta(ts.weekday().into()))
     }
 }
 

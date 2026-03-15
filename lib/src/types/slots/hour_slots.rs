@@ -65,6 +65,16 @@ impl HourSlot {
     pub fn fwd_delta_chrono<T: TimeZone>(&self, src: DateTime<T>) -> TimeDelta {
         TimeDelta::hours(self.fwd_delta(src.hour()))
     }
+
+    pub fn backward_delta_chrono<T: TimeZone>(&self, src: DateTime<T>) -> TimeDelta {
+        let curr = src.hour();
+        let delta = match self {
+            HourSlot::Fixed { hour } => curr - hour,
+            HourSlot::Range { start, .. } => curr - start,
+        };
+
+        TimeDelta::hours(delta as i64)
+    }
 }
 
 impl std::fmt::Display for HourSlot {
@@ -121,9 +131,20 @@ mod test {
 
                 assert!(!sut.matches_chrono(input));
             }
+
+            #[test]
+            fn test_backward_delta_chrono() {
+                let sut = HourSlot::Fixed { hour: 12 };
+
+                let input = Utc.with_ymd_and_hms(2025, 10, 23, 14, 0, 0).unwrap();
+
+                assert_eq!(TimeDelta::hours(2), sut.backward_delta_chrono(input));
+            }
         }
 
         mod range {
+            use chrono::Utc;
+
             use super::*;
 
             #[test]
@@ -163,6 +184,18 @@ mod test {
                     stop: 15,
                 };
                 assert_eq!(18, sut.fwd_delta(18));
+            }
+
+            #[test]
+            fn test_backward_delta_chrono() {
+                let sut = HourSlot::Range {
+                    start: 12,
+                    stop: 15,
+                };
+
+                let input = Utc.with_ymd_and_hms(2025, 10, 23, 14, 0, 0).unwrap();
+
+                assert_eq!(TimeDelta::hours(2), sut.backward_delta_chrono(input));
             }
         }
     }
