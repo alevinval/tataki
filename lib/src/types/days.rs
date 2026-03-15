@@ -1,4 +1,5 @@
 use std::ops::Add;
+use std::ops::Sub;
 
 use chrono::Weekday;
 
@@ -73,6 +74,21 @@ impl Add<u32> for DayOfWeek {
     }
 }
 
+impl Sub<u32> for DayOfWeek {
+    type Output = DayOfWeek;
+
+    fn sub(self, rhs: u32) -> Self::Output {
+        let lhs = self as u32;
+        let diff = lhs.abs_diff(rhs) % 7;
+        (if diff > lhs {
+            7 - diff - lhs
+        } else {
+            lhs - diff
+        })
+        .into()
+    }
+}
+
 #[cfg(test)]
 mod test {
 
@@ -107,5 +123,14 @@ mod test {
         assert_eq!(DayOfWeek::Thu, DayOfWeek::Mon + 3);
         assert_eq!(DayOfWeek::Mon, DayOfWeek::Mon + 7);
         assert_eq!(DayOfWeek::Tue, DayOfWeek::Mon + 8);
+    }
+
+    #[test]
+    fn test_dayofweek_sub() {
+        assert_eq!(DayOfWeek::Sun, DayOfWeek::Mon - 1);
+        assert_eq!(DayOfWeek::Sat, DayOfWeek::Mon - 2);
+        assert_eq!(DayOfWeek::Fri, DayOfWeek::Mon - 3);
+        assert_eq!(DayOfWeek::Mon, DayOfWeek::Mon - 7);
+        assert_eq!(DayOfWeek::Sun, DayOfWeek::Mon - 8);
     }
 }
