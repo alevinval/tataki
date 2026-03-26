@@ -85,9 +85,8 @@ impl Sequencer {
 #[cfg(test)]
 mod test {
 
-    use chrono::TimeZone;
-
     use super::*;
+    use crate::test::d;
     use crate::types::Duration;
     use crate::types::HourSlot;
 
@@ -102,13 +101,13 @@ mod test {
             None,
         );
 
-        let ts = Local.with_ymd_and_hms(2025, 10, 23, 14, 0, 0).unwrap();
+        let ts = d(2025, 10, 23, 14, 0, 0);
         assert!(!sut.accepts(ts));
 
-        let ts = Local.with_ymd_and_hms(2025, 10, 23, 3, 0, 0).unwrap();
+        let ts = d(2025, 10, 23, 3, 0, 0);
         assert!(sut.accepts(ts));
 
-        let ts = Local.with_ymd_and_hms(2025, 10, 24, 3, 0, 0).unwrap();
+        let ts = d(2025, 10, 24, 3, 0, 0);
         assert!(sut.accepts(ts));
     }
 
@@ -124,26 +123,26 @@ mod test {
         );
 
         // Outside slot.
-        let ts = Local.with_ymd_and_hms(2025, 10, 23, 14, 0, 0).unwrap();
+        let ts = d(2025, 10, 23, 14, 0, 0);
         assert!(!sut.accepts(ts));
 
         // Inside slot. Consume.
-        let ts = Local.with_ymd_and_hms(2025, 10, 23, 4, 0, 0).unwrap();
+        let ts = d(2025, 10, 23, 4, 0, 0);
         assert!(sut.accepts(ts));
         sut.commit(ts);
         assert!(!sut.accepts(ts));
 
         // Inside slot, but not spaced enough.
-        let ts = Local.with_ymd_and_hms(2025, 10, 24, 4, 0, 0).unwrap();
+        let ts = d(2025, 10, 24, 4, 0, 0);
         assert!(!sut.accepts(ts));
 
         // Inside slot, properly spaced. Consume.
-        let ts = Local.with_ymd_and_hms(2025, 10, 25, 4, 0, 0).unwrap();
+        let ts = d(2025, 10, 25, 4, 0, 0);
         assert!(sut.accepts(ts));
         sut.commit(ts);
 
         // Inside slot, properly spaced, but no more recurrences available.
-        let ts = Local.with_ymd_and_hms(2025, 10, 27, 4, 0, 0).unwrap();
+        let ts = d(2025, 10, 27, 4, 0, 0);
         assert!(!sut.accepts(ts));
     }
 }

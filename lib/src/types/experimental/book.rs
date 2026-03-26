@@ -52,10 +52,9 @@ impl std::fmt::Display for Book {
 
 #[cfg(test)]
 mod test {
-    use chrono::Local;
     use chrono::TimeDelta;
-    use chrono::TimeZone;
 
+    use crate::test::d;
     use crate::types::Blueprint;
     use crate::types::Duration;
     use crate::types::HourSlot;
@@ -94,7 +93,7 @@ mod test {
             ),
         ]);
 
-        let ts = Local.with_ymd_and_hms(2025, 10, 23, 14, 0, 0).unwrap();
+        let ts = d(2025, 10, 23, 14, 0, 0);
         assert_eq!(Some(TimeDelta::hours(18)), sut.min_fwd_delta_chrono(ts));
     }
 }

@@ -63,9 +63,9 @@ impl std::fmt::Display for Recurrence {
 mod test {
 
     use chrono::TimeDelta;
-    use chrono::TimeZone;
 
     use super::*;
+    use crate::test::d;
     use crate::types::TimeUnit;
 
     #[test]
@@ -104,7 +104,7 @@ mod test {
 
     #[test]
     fn test_spaced() {
-        let ts = Local.with_ymd_and_hms(2026, 10, 23, 0, 0, 0).unwrap();
+        let ts = d(2026, 10, 23, 0, 0, 0);
 
         let sut = Recurrence::Once;
         assert_eq!(ts, sut.spaced(ts));

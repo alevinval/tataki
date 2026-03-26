@@ -72,13 +72,12 @@ impl Journal {
 #[cfg(test)]
 mod test {
 
-    use chrono::TimeZone;
-
     use super::*;
+    use crate::test::d;
 
     #[test]
     fn test_get_last_commit_for() {
-        let ts = Local.with_ymd_and_hms(2025, 10, 23, 14, 0, 0).unwrap();
+        let ts = d(2025, 10, 23, 14, 0, 0);
         let commit = Commit {
             blueprint_id: "found".into(),
             committed_at: ts,
