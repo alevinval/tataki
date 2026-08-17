@@ -41,7 +41,7 @@ impl Sequencer {
             blueprint.recurrence(),
             blueprint.preferred_slot(),
             journal
-                .get_last_commit_for(blueprint.id())
+                .last_commit_for(blueprint.id())
                 .and_then(|commit| match commit.action() {
                     Action::Completed => Some(commit.committed_at()),
                     Action::Postponed => None,
