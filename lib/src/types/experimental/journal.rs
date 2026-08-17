@@ -1,13 +1,15 @@
 use chrono::DateTime;
 use chrono::Local;
+use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Action {
     Completed,
     Postponed,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Commit {
     blueprint_id: String,
     committed_at: DateTime<Local>,
@@ -44,6 +46,7 @@ impl Commit {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Journal {
     commits: Vec<Commit>,
 }
@@ -136,5 +139,17 @@ mod test {
         assert_eq!(ts, completed.committed_at());
         assert_eq!(Action::Completed, completed.action());
         assert_eq!(Action::Postponed, postponed.action());
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let ts = d(2025, 10, 23, 14, 0, 0);
+        let sut = Journal::new(vec![
+            Commit::completed("a".into(), ts),
+            Commit::postponed("b".into(), ts),
+        ]);
+        let json = serde_json::to_string(&sut).unwrap();
+        let back: Journal = serde_json::from_str(&json).unwrap();
+        assert_eq!(sut, back);
     }
 }

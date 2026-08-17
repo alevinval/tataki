@@ -2,10 +2,12 @@ use chrono::DateTime;
 use chrono::Datelike;
 use chrono::TimeDelta;
 use chrono::TimeZone;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::types::days::DayOfWeek;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum WeekSlot {
     /// A specific day of the week.
     Fixed { day: DayOfWeek },
@@ -249,6 +251,23 @@ mod test {
             let input = d(2025, 10, 21, 14, 0, 0); // Tuesday
             assert_eq!(TimeDelta::days(3), sut.backward_delta_chrono(input));
         }
+
+        #[test]
+        fn test_serde_roundtrip() {
+            let suts = [
+                WeekSlot::Fixed {
+                    day: DayOfWeek::Mon,
+                },
+                WeekSlot::Fixed {
+                    day: DayOfWeek::Sun,
+                },
+            ];
+            for sut in suts {
+                let json = serde_json::to_string(&sut).unwrap();
+                let back: WeekSlot = serde_json::from_str(&json).unwrap();
+                assert_eq!(sut, back);
+            }
+        }
     }
 
     mod range {
@@ -339,6 +358,25 @@ mod test {
             // Outside range (Wednesday) - go back to Friday = 5 days
             let input = d(2025, 10, 22, 14, 0, 0); // Wednesday
             assert_eq!(TimeDelta::days(5), sut.backward_delta_chrono(input));
+        }
+
+        #[test]
+        fn test_serde_roundtrip() {
+            let suts = [
+                WeekSlot::Range {
+                    start: DayOfWeek::Mon,
+                    stop: DayOfWeek::Fri,
+                },
+                WeekSlot::Range {
+                    start: DayOfWeek::Fri,
+                    stop: DayOfWeek::Mon,
+                },
+            ];
+            for sut in suts {
+                let json = serde_json::to_string(&sut).unwrap();
+                let back: WeekSlot = serde_json::from_str(&json).unwrap();
+                assert_eq!(sut, back);
+            }
         }
     }
 }

@@ -1,10 +1,12 @@
 use chrono::DateTime;
 use chrono::Local;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::types::Duration;
 
 /// Recurrence of an event.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Recurrence {
     /// Occurs exactly once, does not repeat.
     Once,
@@ -100,6 +102,25 @@ mod test {
             spacing: Duration::days(1),
         };
         assert_eq!(Some(7), sut.remaining());
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let suts = [
+            Recurrence::Once,
+            Recurrence::Times {
+                count: 3,
+                spacing: Duration::days(2),
+            },
+            Recurrence::Period {
+                spacing: Duration::of(3, TimeUnit::Month),
+            },
+        ];
+        for sut in suts {
+            let json = serde_json::to_string(&sut).unwrap();
+            let back: Recurrence = serde_json::from_str(&json).unwrap();
+            assert_eq!(sut, back);
+        }
     }
 
     #[test]

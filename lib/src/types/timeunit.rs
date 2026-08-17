@@ -1,8 +1,11 @@
+use serde::Deserialize;
+use serde::Serialize;
+
 /// Models the unit of time.
 ///
 /// The natural ordering corresponds to duration magnitude:
 /// `Second < Minute < Hour < Day < Month < Year`.
-#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub enum TimeUnit {
     /// Represents a 1 second duration.
     Second,
@@ -71,5 +74,22 @@ mod test {
         assert_eq!(86400, TimeUnit::Day.seconds());
         assert_eq!(2592000, TimeUnit::Month.seconds());
         assert_eq!(31536000, TimeUnit::Year.seconds());
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let variants = [
+            TimeUnit::Second,
+            TimeUnit::Minute,
+            TimeUnit::Hour,
+            TimeUnit::Day,
+            TimeUnit::Month,
+            TimeUnit::Year,
+        ];
+        for sut in variants {
+            let json = serde_json::to_string(&sut).unwrap();
+            let back: TimeUnit = serde_json::from_str(&json).unwrap();
+            assert_eq!(sut, back);
+        }
     }
 }

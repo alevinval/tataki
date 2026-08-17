@@ -1,3 +1,6 @@
+use serde::Deserialize;
+use serde::Serialize;
+
 use crate::types::Duration;
 use crate::types::Priority;
 use crate::types::Recurrence;
@@ -10,7 +13,7 @@ use crate::types::Slot;
 /// - When it's preferred to be scheduled (`preferred_slot`)
 /// - How often it repeats (`recurrence`)
 /// - Its urgency level (`priority`)
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Blueprint {
     id: String,
     description: String,
@@ -119,5 +122,27 @@ mod test {
             Slot::Week(WeekSlot::workdays()),
         );
         assert_eq!("1 CRIT ^3mo 1h Mon-Fri", sut.to_string());
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let sut = get_example_blueprint();
+        let json = serde_json::to_string(&sut).unwrap();
+        let back: Blueprint = serde_json::from_str(&json).unwrap();
+        assert_eq!(sut, back);
+
+        let sut = Blueprint::new(
+            "1".to_string(),
+            "Clean VAC filters".to_string(),
+            Duration::hours(1),
+            Priority::Crit,
+            Recurrence::Period {
+                spacing: Duration::of(3, TimeUnit::Month),
+            },
+            Slot::Week(WeekSlot::workdays()),
+        );
+        let json = serde_json::to_string(&sut).unwrap();
+        let back: Blueprint = serde_json::from_str(&json).unwrap();
+        assert_eq!(sut, back);
     }
 }

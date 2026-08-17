@@ -1,6 +1,9 @@
+use serde::Deserialize;
+use serde::Serialize;
+
 /// Priority enumeration.
 /// From most to least priority.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub enum Priority {
     Idle,
     Norm,
@@ -36,5 +39,20 @@ mod test {
         assert!(Priority::High > Priority::Norm);
         assert!(Priority::Norm > Priority::Idle);
         assert!(Priority::Idle == Priority::Idle);
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let variants = [
+            Priority::Idle,
+            Priority::Norm,
+            Priority::High,
+            Priority::Crit,
+        ];
+        for sut in variants {
+            let json = serde_json::to_string(&sut).unwrap();
+            let back: Priority = serde_json::from_str(&json).unwrap();
+            assert_eq!(sut, back);
+        }
     }
 }
