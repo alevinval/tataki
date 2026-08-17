@@ -3,13 +3,15 @@ use std::cmp;
 use chrono::DateTime;
 use chrono::Local;
 use chrono::TimeDelta;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::sequencer::Sequencer;
 use crate::types::Blueprint;
 use crate::types::experimental::journal::Journal;
 
 /// Models a collection of blueprints.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Book {
     blueprints: Vec<Blueprint>,
 }
@@ -95,5 +97,33 @@ mod test {
 
         let ts = d(2025, 10, 23, 14, 0, 0);
         assert_eq!(Some(TimeDelta::hours(18)), sut.min_fwd_delta_chrono(ts));
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let one_hour = Duration::of(1, TimeUnit::Hour);
+        let sut = Book::new(vec![
+            Blueprint::new(
+                "1".to_string(),
+                "Task A".to_string(),
+                one_hour,
+                Priority::Crit,
+                Recurrence::Once,
+                Slot::Hour(HourSlot::Fixed { hour: 8 }),
+            ),
+            Blueprint::new(
+                "2".to_string(),
+                "Task B".to_string(),
+                one_hour,
+                Priority::Norm,
+                Recurrence::Period {
+                    spacing: Duration::of(1, TimeUnit::Day),
+                },
+                Slot::Week(crate::types::WeekSlot::workdays()),
+            ),
+        ]);
+        let json = serde_json::to_string(&sut).unwrap();
+        let back: Book = serde_json::from_str(&json).unwrap();
+        assert_eq!(sut, back);
     }
 }

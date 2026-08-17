@@ -2,12 +2,14 @@ use chrono::DateTime;
 use chrono::TimeDelta;
 use chrono::TimeZone;
 use chrono::Timelike;
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Represents a specific hour or hour range in a day (0-23).
 ///
 /// Used to specify when a [`Blueprint`](crate::types::Blueprint) has
 /// affinity and should be materialized on particular hours of the day.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum HourSlot {
     /// A specific hour of the day.
     Fixed { hour: u32 },
@@ -200,6 +202,14 @@ mod test {
 
             assert!(!sut.matches_chrono(input));
         }
+
+        #[test]
+        fn test_serde_roundtrip() {
+            let sut = HourSlot::Fixed { hour: 9 };
+            let json = serde_json::to_string(&sut).unwrap();
+            let back: HourSlot = serde_json::from_str(&json).unwrap();
+            assert_eq!(sut, back);
+        }
     }
 
     mod range {
@@ -290,6 +300,19 @@ mod test {
             // Outside range (after) - go back to 12:00 same day = 6 hours
             let input = d(2025, 10, 23, 18, 0, 0);
             assert_eq!(TimeDelta::hours(6), sut.backward_delta_chrono(input));
+        }
+
+        #[test]
+        fn test_serde_roundtrip() {
+            let suts = [
+                HourSlot::Range { start: 8, stop: 12 },
+                HourSlot::Range { start: 20, stop: 2 },
+            ];
+            for sut in suts {
+                let json = serde_json::to_string(&sut).unwrap();
+                let back: HourSlot = serde_json::from_str(&json).unwrap();
+                assert_eq!(sut, back);
+            }
         }
     }
 }

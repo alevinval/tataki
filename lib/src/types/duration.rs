@@ -1,9 +1,11 @@
 use chrono::TimeDelta;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::types::TimeUnit;
 
 /// Represents a fixed amount of time in a given unit (e.g. hours, minutes).
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct Duration {
     amount: u64,
     unit: TimeUnit,
@@ -90,5 +92,22 @@ mod test {
             Duration::of(151, TimeUnit::Minute).seconds(),
             (a + b + c).seconds()
         );
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let suts = [
+            Duration::of(123, TimeUnit::Second),
+            Duration::minutes(45),
+            Duration::hours(2),
+            Duration::days(1),
+            Duration::of(3, TimeUnit::Month),
+            Duration::of(1, TimeUnit::Year),
+        ];
+        for sut in suts {
+            let json = serde_json::to_string(&sut).unwrap();
+            let back: Duration = serde_json::from_str(&json).unwrap();
+            assert_eq!(sut, back);
+        }
     }
 }

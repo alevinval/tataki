@@ -2,11 +2,13 @@ use std::ops::Add;
 use std::ops::Sub;
 
 use chrono::Weekday;
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Models the days of the week.
 ///
 /// The natural ordering follows the alphabetical order based on variant names.
-#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub enum DayOfWeek {
     Mon = 0,
     Tue = 1,
@@ -132,5 +134,23 @@ mod test {
         assert_eq!(DayOfWeek::Fri, DayOfWeek::Mon - 3);
         assert_eq!(DayOfWeek::Mon, DayOfWeek::Mon - 7);
         assert_eq!(DayOfWeek::Sun, DayOfWeek::Mon - 8);
+    }
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let variants = [
+            DayOfWeek::Mon,
+            DayOfWeek::Tue,
+            DayOfWeek::Wed,
+            DayOfWeek::Thu,
+            DayOfWeek::Fri,
+            DayOfWeek::Sat,
+            DayOfWeek::Sun,
+        ];
+        for sut in variants {
+            let json = serde_json::to_string(&sut).unwrap();
+            let back: DayOfWeek = serde_json::from_str(&json).unwrap();
+            assert_eq!(sut, back);
+        }
     }
 }
