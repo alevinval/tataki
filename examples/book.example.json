@@ -1,0 +1,53 @@
+{
+  "blueprints": [
+    {
+      "id": "1",
+      "description": "Task A",
+      "estimated_duration": {
+        "amount": 1,
+        "unit": "Hour"
+      },
+      "priority": "Crit",
+      "recurrence": {
+        "Period": {
+          "spacing": {
+            "amount": 1,
+            "unit": "Day"
+          }
+        }
+      },
+      "preferred_slot": {
+        "Hour": {
+          "Fixed": {
+            "hour": 8
+          }
+        }
+      }
+    },
+    {
+      "id": "2",
+      "description": "Task B",
+      "estimated_duration": {
+        "amount": 1,
+        "unit": "Hour"
+      },
+      "priority": "Norm",
+      "recurrence": {
+        "Period": {
+          "spacing": {
+            "amount": 1,
+            "unit": "Day"
+          }
+        }
+      },
+      "preferred_slot": {
+        "Hour": {
+          "Range": {
+            "start": 8,
+            "stop": 12
+          }
+        }
+      }
+    }
+  ]
+}
