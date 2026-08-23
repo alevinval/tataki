@@ -157,13 +157,13 @@ mod test {
 
         // Case 1: First commit at 08:00
         let ts_0800 = d(2026, 1, 1, 8, 0, 0);
-        let mut sut = Sequencer::new(recurrence.clone(), slot.clone(), Some(ts_0800));
+        let sut = Sequencer::new(recurrence, slot, Some(ts_0800));
         // next_mininum_ts = 14:00 - 0 = 14:00
         assert_eq!(sut.next_mininum_ts, Some(d(2026, 1, 1, 14, 0, 0)));
 
         // Case 2: Scheduler advances to 09:00 and commits there
         let ts_0900 = d(2026, 1, 1, 9, 0, 0);
-        let mut sut2 = Sequencer::new(recurrence.clone(), slot.clone(), Some(ts_0900));
+        let sut2 = Sequencer::new(recurrence, slot, Some(ts_0900));
         // next_mininum_ts = 15:00 - 1h = 14:00
         assert_eq!(sut2.next_mininum_ts, Some(d(2026, 1, 1, 14, 0, 0)));
     }

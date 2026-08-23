@@ -117,12 +117,10 @@ impl HourSlot {
             return 0;
         }
 
-        let delta = match self {
+        match self {
             HourSlot::Fixed { hour } => (src as i64 - *hour as i64 + 24) % 24,
             HourSlot::Range { start, .. } => (src as i64 - *start as i64 + 24) % 24,
-        };
-
-        delta
+        }
     }
 }
 

@@ -132,7 +132,7 @@ impl WeekSlot {
     /// Backward delta to snap to the beginning of the slot.
     /// Returns days to go back to the start of the most recent slot.
     pub fn backward_delta(&self, src: DayOfWeek) -> i64 {
-        let delta = match self {
+        match self {
             Self::Fixed { day } => (*day as i64 - src as i64 + 7) % 7,
             Self::Range { start, stop } => {
                 let start = *start as i64;
@@ -149,8 +149,7 @@ impl WeekSlot {
                     (src - start + 7) % 7
                 }
             }
-        };
-        delta
+        }
     }
 }
 

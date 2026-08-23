@@ -1,7 +1,7 @@
-.PHONY: fmt
-fmt:
+.PHONY: lint
+lint:
 	cargo +nightly fmt
-	cargo clippy --tests -- -Dclippy::all
+	cargo clippy --tests --fix --allow-dirty -- -Dclippy::all
 
 .PHONY: test
 test:
