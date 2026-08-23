@@ -52,6 +52,13 @@ impl Store {
         }
     }
 
+    /// Create a new store rooted at `root`, creating the state directory.
+    pub fn init(root: impl AsRef<Path>) -> Result<Self, StorageError> {
+        let store = Self::open(root);
+        ensure_dir(&store.state_dir())?;
+        Ok(store)
+    }
+
     /// The project root directory.
     pub fn root(&self) -> &Path {
         &self.root
@@ -147,6 +154,12 @@ impl Store {
 pub enum StorageError {
     #[error("tataki not initialised - run `tt init`")]
     NotInitialised,
+
+    #[error("tataki already initialised at {path}")]
+    AlreadyInitialised { path: PathBuf },
+
+    #[error("failed to get current directory: {0}")]
+    CurrentDir(#[source] io::Error),
 
     #[error("failed to read {path}: {source}")]
     Read {
@@ -280,5 +293,21 @@ mod test {
         let elsewhere = base.as_ref().join("elsewhere");
         fs::create_dir_all(&elsewhere).unwrap();
         assert_eq!(find_root_from(&elsewhere), None);
+    }
+
+    #[test]
+    fn test_init_creates_state_dir() {
+        let dir = tmpdir("init");
+        let store = Store::init(&dir).unwrap();
+        assert_eq!(store.root(), dir.as_ref());
+        assert!(store.state_dir().is_dir());
+    }
+
+    #[test]
+    fn test_init_is_idempotent() {
+        let dir = tmpdir("init_idempotent");
+        Store::init(&dir).unwrap();
+        // Re-initialising an existing root succeeds.
+        Store::init(&dir).unwrap();
     }
 }
