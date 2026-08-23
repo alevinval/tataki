@@ -7,6 +7,8 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::sequencer::Sequencer;
+use crate::storage::StorageError;
+use crate::storage::Store;
 use crate::types::Blueprint;
 use crate::types::experimental::journal::Journal;
 
@@ -17,6 +19,8 @@ pub struct Book {
 }
 
 impl Book {
+    const FILE: &str = "book.json";
+
     pub fn new(mut blueprints: Vec<Blueprint>) -> Self {
         blueprints.sort_by_key(|b| cmp::Reverse(b.priority()));
         Self { blueprints }
@@ -40,6 +44,16 @@ impl Book {
             .filter(|delta| !delta.is_zero())
             .min()
     }
+
+    /// Load the book from the store.
+    pub fn load(store: &Store) -> Result<Self, StorageError> {
+        store.load(Self::FILE)
+    }
+
+    /// Save the book to the store, atomically.
+    pub fn save(&self, store: &Store) -> Result<(), StorageError> {
+        store.save(Self::FILE, self)
+    }
 }
 
 impl std::fmt::Display for Book {
@@ -56,7 +70,9 @@ impl std::fmt::Display for Book {
 mod test {
     use chrono::TimeDelta;
 
+    use crate::storage::Store;
     use crate::test::d;
+    use crate::test::dir;
     use crate::types::Blueprint;
     use crate::types::Duration;
     use crate::types::HourSlot;
@@ -97,6 +113,21 @@ mod test {
 
         let ts = d(2025, 10, 23, 14, 0, 0);
         assert_eq!(Some(TimeDelta::hours(18)), sut.min_fwd_delta_chrono(ts));
+    }
+
+    #[test]
+    fn test_load_save_roundtrip() {
+        let store = Store::open(dir("book_load_save"));
+        let sut = Book::new(vec![Blueprint::new(
+            "1".to_string(),
+            "Task A".to_string(),
+            Duration::of(1, TimeUnit::Hour),
+            Priority::Crit,
+            Recurrence::Once,
+            Slot::Hour(HourSlot::Fixed { hour: 8 }),
+        )]);
+        sut.save(&store).unwrap();
+        assert_eq!(sut, Book::load(&store).unwrap());
     }
 
     #[test]

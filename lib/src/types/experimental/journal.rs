@@ -3,6 +3,9 @@ use chrono::Local;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::storage::StorageError;
+use crate::storage::Store;
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Action {
     Completed,
@@ -46,22 +49,25 @@ impl Commit {
     }
 }
 
+/// The record of commits.
+///
+/// The JSONL file in the store is the durable source of truth across runs;
+/// this in-memory list is a live view kept in sync by [`Journal::append`], so
+/// callers always see the latest committed entries without reloading.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Journal {
     commits: Vec<Commit>,
 }
 
 impl Journal {
+    const FILE: &str = "journal.jsonl";
+
     pub fn new(commits: Vec<Commit>) -> Self {
         Self { commits }
     }
 
     pub fn commits(&self) -> &[Commit] {
         &self.commits
-    }
-
-    pub fn push(&mut self, commit: Commit) {
-        self.commits.push(commit);
     }
 
     pub fn last_commit_for(&self, blueprint_id: &str) -> Option<&Commit> {
@@ -74,13 +80,33 @@ impl Journal {
     pub fn last_commit(&self) -> Option<&Commit> {
         self.commits.last()
     }
+
+    /// Load the journal from the store. Returns an empty journal if no
+    /// commits have been recorded yet.
+    pub fn load(store: &Store) -> Result<Self, StorageError> {
+        let commits: Vec<Commit> = store.load_all(Self::FILE)?;
+        Ok(Self::new(commits))
+    }
+
+    /// Append a commit: persist it to the store and record it in memory.
+    ///
+    /// The store's JSONL file is the durable source of truth; the in-memory
+    /// journal is a live view kept in sync here so callers always see the
+    /// latest committed entries. If the file append fails, the in-memory
+    /// journal is left unchanged.
+    pub fn append(&mut self, store: &Store, commit: Commit) -> Result<(), StorageError> {
+        store.append(Self::FILE, &commit)?;
+        self.commits.push(commit);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod test {
-
     use super::*;
+    use crate::storage::Store;
     use crate::test::d;
+    use crate::test::dir;
 
     #[test]
     fn test_get_last_commit_for() {
@@ -122,15 +148,6 @@ mod test {
     }
 
     #[test]
-    fn test_push_appends_to_end() {
-        let mut sut = Journal::new(vec![]);
-        let commit = Commit::completed("a".into(), d(2025, 10, 23, 14, 0, 0));
-        sut.push(commit.clone());
-        assert_eq!(vec![commit.clone()], sut.commits().to_vec());
-        assert_eq!(Some(&commit), sut.last_commit());
-    }
-
-    #[test]
     fn test_commit_constructors() {
         let ts = d(2025, 10, 23, 14, 0, 0);
         let completed = Commit::completed("a".into(), ts);
@@ -139,6 +156,42 @@ mod test {
         assert_eq!(ts, completed.committed_at());
         assert_eq!(Action::Completed, completed.action());
         assert_eq!(Action::Postponed, postponed.action());
+    }
+
+    #[test]
+    fn test_append_updates_memory_and_file() {
+        let store = Store::open(dir("journal_append"));
+        let ts = d(2025, 10, 23, 14, 0, 0);
+        let mut sut = Journal::new(vec![]);
+        sut.append(&store, Commit::completed("1".into(), ts))
+            .unwrap();
+        sut.append(&store, Commit::postponed("2".into(), ts))
+            .unwrap();
+
+        // Append keeps the in-memory view in sync.
+        assert_eq!(
+            Some(&Commit::completed("1".into(), ts)),
+            sut.last_commit_for("1")
+        );
+        assert_eq!(Some(&Commit::postponed("2".into(), ts)), sut.last_commit());
+
+        // And the commit is durable: a fresh load sees it too.
+        let reloaded = Journal::load(&store).unwrap();
+        assert_eq!(
+            Some(&Commit::postponed("2".into(), ts)),
+            reloaded.last_commit()
+        );
+        assert_eq!(
+            Some(&Commit::completed("1".into(), ts)),
+            reloaded.last_commit_for("1")
+        );
+    }
+
+    #[test]
+    fn test_load_missing_file_is_empty() {
+        let store = Store::open(dir("journal_missing"));
+        let sut = Journal::load(&store).unwrap();
+        assert_eq!(None, sut.last_commit());
     }
 
     #[test]
