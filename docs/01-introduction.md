@@ -1,27 +1,44 @@
 # Goal
 
-Tataki helps craft, distribute, and shape calendars in ways that are convenient to the human.
-Tataki helps plan ahead your life.
-Tataki helps manage set-backs.
+Tataki helps define, craft, distribute, and manage schedules.
 
-## The problem space
+## Problem space
 
-Let's start one example, a yearly dentist visit.
+Imagine a yearly dentist visit.
 
-- It's a recurrent event (on a yearly basis)
-- It's re-scheduled after completion (by the dentist)
-- It's not going to be precisely re-scheduled after 365 days (depends on the dentist agenda)
+- Medium priority (i.e. nuisance to miss)
+- Recurrent event (i.e. a yearly basis)
+- Re-scheduled after completion (i.e. next year visit)
+- The next recurrence is not exactly 365 days away (i.e. some future events are defined manually)
 
-Another example, renewing a digital certificate to electronically access government sites.
+Or renewing your digital certificate:
 
-- It's a recurrent event (after 8 years it expires)
-- It's re-scheduled after completion (when you complete the process)
-- You want it renewed anywhere between 6 to 3 months in advance (in case something goes wrong)
-- You don't want to miss the renewal, otherwise physically visit the office to expedite a new one
+- High priority (i.e. better not to miss it)
+- One-off event (i.e. certificate valid for 8 years; if the renewal is missed, the chain stops)
+- Re-scheduled after completion
+- Should be renewed with enough margin (i.e. 3 to 6 months of lead time, should something go wrong)
 
-More examples, cleaning the VAC units filters.
+Or cleaning the VAC filters.
 
-- It's a recurrent event (once every year)
-- It's re-scheduled after completion (after you're done)
-- You don't care about postponing it (not urgent)
-- You only do house-keeping during the weekend (annoying task)
+- Low priority (i.e. chore)
+- Recurrent event (i.e. twice a year)
+- Schedule flexibility (i.e. any weekend within a given month)
+
+The examples above illustrate some of the situations that Tataki must support.
+
+## Representing the domain
+
+The scheduling domain requires primitives to characterize events and their
+temporal recurrence characteristics - to name a few:
+
+- Days, Months, Durations, Time units
+- Priorities (e.g. Low, Normal, High, Critical)
+- Recurrences (e.g. One off, Recurrent, Finite recurrence)
+- Slots (e.g. Individual or Ranges of months, days, hours...)
+
+Together, these parameters characterize events in what we call a Blueprint - an
+abstract representation of the task - which can be scheduled and instantiated into a
+concrete plan or schedule.
+
+A collection of blueprints is kept together as Book, which holds all the representations
+for the domain that is being scheduled.
