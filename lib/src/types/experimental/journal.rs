@@ -111,11 +111,7 @@ mod test {
     #[test]
     fn test_get_last_commit_for() {
         let ts = d(2025, 10, 23, 14, 0, 0);
-        let commit = Commit {
-            blueprint_id: "found".into(),
-            committed_at: ts,
-            action: Action::Completed,
-        };
+        let commit = Commit::completed("found".into(), ts);
         let sut = Journal::new(vec![commit.clone()]);
 
         assert_eq!(None, sut.last_commit_for("missing"));
