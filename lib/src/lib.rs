@@ -1,4 +1,5 @@
-mod scheduler;
+pub mod parser;
+pub mod scheduler;
 mod sequencer;
 mod storage;
 pub mod types;
