@@ -212,34 +212,15 @@ fn ensure_dir(dir: &Path) -> Result<(), StorageError> {
 mod test {
     use super::*;
     use crate::test::d;
-    use crate::test::dir;
+    use crate::test::tmpdir;
     use crate::types::experimental::book::Book;
     use crate::types::experimental::journal::Commit;
     use crate::types::experimental::journal::Journal;
 
-    /// A temp directory for a single test, removed on drop.
-    struct TmpDir(PathBuf);
-
-    impl TmpDir {
-        fn new(name: &str) -> Self {
-            Self(dir(name))
-        }
-
-        fn path(&self) -> &Path {
-            &self.0
-        }
-    }
-
-    impl Drop for TmpDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
-        }
-    }
-
     #[test]
     fn test_save_load_roundtrip() {
-        let dir = TmpDir::new("roundtrip");
-        let store = Store::open(dir.path());
+        let dir = tmpdir("roundtrip");
+        let store = Store::open(&dir);
         let book = Book::new(vec![]);
         store.save("book.json", &book).unwrap();
         let loaded: Book = store.load("book.json").unwrap();
@@ -248,16 +229,16 @@ mod test {
 
     #[test]
     fn test_load_missing_file() {
-        let dir = TmpDir::new("missing");
-        let store = Store::open(dir.path());
+        let dir = tmpdir("missing");
+        let store = Store::open(&dir);
         let result: Result<Book, _> = store.load("book.json");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_append_and_load_all() {
-        let dir = TmpDir::new("append");
-        let store = Store::open(dir.path());
+        let dir = tmpdir("append");
+        let store = Store::open(&dir);
         let ts = d(2025, 10, 23, 14, 0, 0);
         store
             .append("journal.jsonl", &Commit::completed("1".into(), ts))
@@ -280,23 +261,23 @@ mod test {
 
     #[test]
     fn test_load_all_missing_file() {
-        let dir = TmpDir::new("load_all_missing");
-        let store = Store::open(dir.path());
+        let dir = tmpdir("load_all_missing");
+        let store = Store::open(&dir);
         let commits: Vec<Commit> = store.load_all("journal.jsonl").unwrap();
         assert!(commits.is_empty());
     }
 
     #[test]
     fn test_find_root_from() {
-        let base = TmpDir::new("find_root");
-        let root = base.path().join("root");
+        let base = tmpdir("find_root");
+        let root = base.as_ref().join("root");
         fs::create_dir_all(root.join(".tataki")).unwrap();
         let nested = root.join("a").join("b");
         fs::create_dir_all(&nested).unwrap();
         assert_eq!(find_root_from(&nested), Some(root.clone()));
         assert_eq!(find_root_from(&root), Some(root));
 
-        let elsewhere = base.path().join("elsewhere");
+        let elsewhere = base.as_ref().join("elsewhere");
         fs::create_dir_all(&elsewhere).unwrap();
         assert_eq!(find_root_from(&elsewhere), None);
     }

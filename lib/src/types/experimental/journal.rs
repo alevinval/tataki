@@ -106,7 +106,7 @@ mod test {
     use super::*;
     use crate::storage::Store;
     use crate::test::d;
-    use crate::test::dir;
+    use crate::test::tmpdir;
 
     #[test]
     fn test_get_last_commit_for() {
@@ -156,7 +156,8 @@ mod test {
 
     #[test]
     fn test_append_updates_memory_and_file() {
-        let store = Store::open(dir("journal_append"));
+        let dir = tmpdir("journal_append");
+        let store = Store::open(&dir);
         let ts = d(2025, 10, 23, 14, 0, 0);
         let mut sut = Journal::new(vec![]);
         sut.append(&store, Commit::completed("1".into(), ts))
@@ -185,7 +186,8 @@ mod test {
 
     #[test]
     fn test_load_missing_file_is_empty() {
-        let store = Store::open(dir("journal_missing"));
+        let dir = tmpdir("journal_missing");
+        let store = Store::open(&dir);
         let sut = Journal::load(&store).unwrap();
         assert_eq!(None, sut.last_commit());
     }

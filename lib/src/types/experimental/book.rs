@@ -72,7 +72,7 @@ mod test {
 
     use crate::storage::Store;
     use crate::test::d;
-    use crate::test::dir;
+    use crate::test::tmpdir;
     use crate::types::Blueprint;
     use crate::types::Duration;
     use crate::types::HourSlot;
@@ -117,7 +117,8 @@ mod test {
 
     #[test]
     fn test_load_save_roundtrip() {
-        let store = Store::open(dir("book_load_save"));
+        let dir = tmpdir("book_load_save");
+        let store = Store::open(&dir);
         let sut = Book::new(vec![Blueprint::new(
             "1".to_string(),
             "Task A".to_string(),
