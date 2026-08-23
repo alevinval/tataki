@@ -60,22 +60,9 @@ impl Sequencer {
         true
     }
 
-    /// Returns the earliest candidate timestamp at or after `ts`.
-    pub fn next_candidate_at_or_after(&self, ts: DateTime<Local>) -> Option<DateTime<Local>> {
-        if let Some(0) = self.remaining {
-            return None;
-        }
-
-        let earliest = self.next_minimum_ts.map_or(ts, |next| next.max(ts));
-        Some(self.availability.next_window_start_at_or_after(earliest))
-    }
-
     /// Records `ts` as the next occurrence in the sequence.
     pub fn commit(&mut self, ts: DateTime<Local>) {
-        debug_assert!(
-            self.accepts(ts),
-            "always guard `next()` calls with `has_next()`"
-        );
+        debug_assert!(self.accepts(ts), "always guard with `accepts(ts)`");
 
         if let Some(ref mut r) = self.remaining {
             *r = r.saturating_sub(1);
@@ -86,6 +73,16 @@ impl Sequencer {
             self.availability,
             ts,
         ));
+    }
+
+    /// Returns the earliest candidate timestamp at or after `ts`.
+    pub fn next_candidate_for(&self, ts: DateTime<Local>) -> Option<DateTime<Local>> {
+        if let Some(0) = self.remaining {
+            return None;
+        }
+
+        let earliest = self.next_minimum_ts.map_or(ts, |next| next.max(ts));
+        Some(self.availability.next_window_start(earliest))
     }
 
     fn next_minimum_after(
@@ -229,15 +226,15 @@ mod test {
 
         assert_eq!(
             Some(d(2026, 6, 22, 8, 0, 0)),
-            sut.next_candidate_at_or_after(d(2026, 6, 20, 10, 0, 0))
+            sut.next_candidate_for(d(2026, 6, 20, 10, 0, 0))
         );
         assert_eq!(
             Some(d(2026, 6, 22, 9, 0, 0)),
-            sut.next_candidate_at_or_after(d(2026, 6, 22, 9, 0, 0))
+            sut.next_candidate_for(d(2026, 6, 22, 9, 0, 0))
         );
         assert_eq!(
             Some(d(2026, 6, 23, 8, 0, 0)),
-            sut.next_candidate_at_or_after(d(2026, 6, 22, 13, 0, 0))
+            sut.next_candidate_for(d(2026, 6, 22, 13, 0, 0))
         );
     }
 }

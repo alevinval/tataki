@@ -2,7 +2,7 @@ use chrono::DateTime;
 use chrono::Datelike;
 use chrono::Days;
 use chrono::Local;
-use chrono::NaiveDate;
+use chrono::NaiveTime;
 use chrono::TimeDelta;
 use chrono::TimeZone;
 use chrono::Timelike;
@@ -59,20 +59,20 @@ impl Availability {
     }
 
     pub fn backward_delta_chrono(&self, ts: DateTime<Local>) -> TimeDelta {
-        ts - self.most_recent_window_start(ts)
+        ts - self.backwards_window_start(ts)
     }
 
     /// Returns the next timestamp at or after `ts` that lies inside this
     /// availability window.
-    pub fn next_window_start_at_or_after(&self, ts: DateTime<Local>) -> DateTime<Local> {
+    pub fn next_window_start(&self, ts: DateTime<Local>) -> DateTime<Local> {
         if self.contains(ts) {
             return ts;
         }
 
         (0..=Self::MAX_DAY_SCAN)
-            .map(|days_fwd| ts.date_naive() + Days::new(days_fwd))
+            .map(|days_fwd| ts + Days::new(days_fwd))
             .filter(|date| self.days.matches(date.weekday().into()))
-            .map(|date| self.window_start_on(date))
+            .map(|date| self.starting_hour_for(date))
             .find(|candidate| *candidate >= ts)
             .expect("availability must have a next matching window")
     }
@@ -107,16 +107,16 @@ impl Availability {
         }
     }
 
-    fn most_recent_window_start(&self, ts: DateTime<Local>) -> DateTime<Local> {
+    fn backwards_window_start(&self, ts: DateTime<Local>) -> DateTime<Local> {
         (0..=Self::MAX_DAY_SCAN)
-            .map(|days_back| ts.date_naive() - Days::new(days_back))
+            .map(|days_back| ts - Days::new(days_back))
             .filter(|date| self.days.matches(date.weekday().into()))
-            .map(|date| self.window_start_on(date))
+            .map(|date| self.starting_hour_for(date))
             .find(|candidate| *candidate <= ts)
             .expect("availability must have a previous matching window")
     }
 
-    fn window_start_on(&self, date: NaiveDate) -> DateTime<Local> {
+    fn starting_hour_for(&self, date: DateTime<Local>) -> DateTime<Local> {
         Local
             .with_ymd_and_hms(
                 date.year(),
@@ -130,11 +130,8 @@ impl Availability {
     }
 
     fn next_hour_boundary(&self, ts: DateTime<Local>) -> DateTime<Local> {
-        ts.with_minute(0)
-            .and_then(|ts| ts.with_second(0))
-            .and_then(|ts| ts.with_nanosecond(0))
+        ts.with_time(NaiveTime::from_hms_nano_opt(ts.hour() + 1, 0, 0, 0).unwrap())
             .unwrap()
-            + TimeDelta::hours(1)
     }
 }
 
@@ -220,19 +217,19 @@ mod test {
 
         assert_eq!(
             d(2026, 6, 22, 9, 0, 0),
-            sut.next_window_start_at_or_after(d(2026, 6, 22, 9, 0, 0))
+            sut.next_window_start(d(2026, 6, 22, 9, 0, 0))
         );
         assert_eq!(
             d(2026, 6, 22, 8, 0, 0),
-            sut.next_window_start_at_or_after(d(2026, 6, 22, 7, 0, 0))
+            sut.next_window_start(d(2026, 6, 22, 7, 0, 0))
         );
         assert_eq!(
             d(2026, 6, 23, 8, 0, 0),
-            sut.next_window_start_at_or_after(d(2026, 6, 22, 13, 0, 0))
+            sut.next_window_start(d(2026, 6, 22, 13, 0, 0))
         );
         assert_eq!(
             d(2026, 6, 22, 8, 0, 0),
-            sut.next_window_start_at_or_after(d(2026, 6, 20, 10, 0, 0))
+            sut.next_window_start(d(2026, 6, 20, 10, 0, 0))
         );
     }
 
