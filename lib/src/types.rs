@@ -1,3 +1,4 @@
+mod availability;
 mod blueprint;
 pub mod days;
 mod duration;
@@ -7,6 +8,7 @@ mod recurrence;
 mod slots;
 mod timeunit;
 
+pub use availability::Availability;
 pub use blueprint::Blueprint;
 pub use duration::Duration;
 pub use priority::Priority;

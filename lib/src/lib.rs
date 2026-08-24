@@ -1,8 +1,9 @@
 mod scheduler;
 mod sequencer;
 mod storage;
-mod types;
+pub mod types;
 
+pub use scheduler::Scheduler;
 pub use storage::StorageError;
 pub use storage::Store;
 
