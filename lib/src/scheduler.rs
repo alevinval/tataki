@@ -37,17 +37,19 @@ impl Scheduler {
                     from += entry.duration().timedelta();
                     entries.push(entry);
                 }
-                None => {
-                    if let Some(delta) = self.book.min_fwd_delta_chrono(from) {
-                        from += delta;
-                    } else {
-                        panic!("...");
-                    }
-                }
+                None => from += self.min_fwd_delta(from),
             }
         }
 
         Plan::new(entries)
+    }
+
+    fn min_fwd_delta(&self, from: DateTime<Local>) -> chrono::TimeDelta {
+        self.sequencers
+            .iter()
+            .filter_map(|(_, sequencer)| sequencer.fwd_delta(from))
+            .min()
+            .expect("...")
     }
 
     pub fn sequence_next_entry(&mut self, ts: DateTime<Local>) -> Option<PlanEntry> {
@@ -310,8 +312,9 @@ mod test {
         let from = d(2026, 10, 24, 0, 0, 0);
         let plan = Scheduler::new(book, journal).schedule(from, from + TimeDelta::days(5));
 
-        // Cascading: each entry advances `from` by its duration, so later
-        // tasks drift forward as earlier ones push the clock.
+        // The clock cascades within a day (each entry advances `from` by its
+        // duration), but re-anchors to the slots each day: no cumulative
+        // drift, no skipped entries.
         let expected = r#"gym 2026-10-24T06:00:00+02:00
 meds 2026-10-24T08:00:00+02:00
 standup 2026-10-24T09:05:00+02:00
@@ -319,23 +322,24 @@ tax 2026-10-24T10:35:00+02:00
 review 2026-10-24T14:35:00+02:00
 invoice 2026-10-24T15:35:00+02:00
 social 2026-10-24T20:05:00+02:00
-gym 2026-10-25T06:05:00+01:00
-meds 2026-10-25T08:05:00+01:00
-standup 2026-10-25T09:10:00+01:00
-clean 2026-10-25T10:40:00+01:00
-review 2026-10-25T14:40:00+01:00
-report 2026-10-26T06:40:00+01:00
-meds 2026-10-26T08:40:00+01:00
-standup 2026-10-26T09:45:00+01:00
-sync 2026-10-26T11:15:00+01:00
-review 2026-10-26T15:15:00+01:00
-gym 2026-10-27T06:15:00+01:00
-meds 2026-10-27T08:15:00+01:00
-review 2026-10-27T14:20:00+01:00
-gym 2026-10-28T06:20:00+01:00
-meds 2026-10-28T08:20:00+01:00
-standup 2026-10-28T09:25:00+01:00
-review 2026-10-28T14:55:00+01:00"#;
+gym 2026-10-25T06:00:00+01:00
+meds 2026-10-25T08:00:00+01:00
+standup 2026-10-25T09:05:00+01:00
+clean 2026-10-25T10:35:00+01:00
+review 2026-10-25T14:35:00+01:00
+report 2026-10-26T06:00:00+01:00
+meds 2026-10-26T08:00:00+01:00
+standup 2026-10-26T09:05:00+01:00
+sync 2026-10-26T11:35:00+01:00
+review 2026-10-26T14:35:00+01:00
+gym 2026-10-27T06:00:00+01:00
+meds 2026-10-27T08:00:00+01:00
+standup 2026-10-27T09:05:00+01:00
+review 2026-10-27T14:35:00+01:00
+gym 2026-10-28T06:00:00+01:00
+meds 2026-10-28T08:00:00+01:00
+standup 2026-10-28T09:05:00+01:00
+review 2026-10-28T14:35:00+01:00"#;
 
         assert_eq!(expected.trim(), plan.as_str().trim());
     }

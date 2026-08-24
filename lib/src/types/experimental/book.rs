@@ -1,8 +1,5 @@
 use std::cmp;
 
-use chrono::DateTime;
-use chrono::Local;
-use chrono::TimeDelta;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -37,14 +34,6 @@ impl Book {
             .collect()
     }
 
-    pub fn min_fwd_delta_chrono(&self, ts: DateTime<Local>) -> Option<TimeDelta> {
-        self.blueprints
-            .iter()
-            .map(|blueprint| blueprint.preferred_slot().fwd_delta_chrono(ts))
-            .filter(|delta| !delta.is_zero())
-            .min()
-    }
-
     /// Load the book from the store.
     pub fn load(store: &Store) -> Result<Self, StorageError> {
         store.load(Self::FILE)
@@ -68,10 +57,7 @@ impl std::fmt::Display for Book {
 
 #[cfg(test)]
 mod test {
-    use chrono::TimeDelta;
-
     use crate::storage::Store;
-    use crate::test::d;
     use crate::test::tmpdir;
     use crate::types::Blueprint;
     use crate::types::Duration;
@@ -81,39 +67,6 @@ mod test {
     use crate::types::Slot;
     use crate::types::TimeUnit;
     use crate::types::experimental::book::Book;
-
-    #[test]
-    fn test_min_fwd_delta_chrono() {
-        let eight_am = Slot::Hour(HourSlot::Fixed { hour: 8 });
-        let morning = Slot::Hour(HourSlot::Range { start: 8, stop: 12 });
-        let daily = Recurrence::Period {
-            spacing: Duration::of(1, TimeUnit::Day),
-        };
-
-        let one_hour = Duration::of(1, TimeUnit::Hour);
-
-        let sut = Book::new(vec![
-            Blueprint::new(
-                "1".to_string(),
-                "Task A".to_string(),
-                one_hour,
-                Priority::Crit,
-                daily,
-                eight_am,
-            ),
-            Blueprint::new(
-                "2".to_string(),
-                "Task B".to_string(),
-                one_hour,
-                Priority::Norm,
-                daily,
-                morning,
-            ),
-        ]);
-
-        let ts = d(2025, 10, 23, 14, 0, 0);
-        assert_eq!(Some(TimeDelta::hours(18)), sut.min_fwd_delta_chrono(ts));
-    }
 
     #[test]
     fn test_load_save_roundtrip() {
