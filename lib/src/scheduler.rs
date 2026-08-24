@@ -9,82 +9,101 @@ use crate::types::experimental::plan::Plan;
 use crate::types::experimental::plan_entry::PlanEntry;
 
 pub struct Scheduler {
-    book: Book,
-    journal: Journal,
     sequencers: Vec<(Blueprint, Sequencer)>,
 }
 
 impl Scheduler {
     pub fn new(book: Book, journal: Journal) -> Self {
-        let sequencers = book.spawn_sequencers(&journal);
-
         Self {
-            book,
-            journal,
-            sequencers,
+            sequencers: book.spawn_sequencers(&journal),
         }
     }
 
     pub fn schedule(mut self, mut from: DateTime<Local>, to: DateTime<Local>) -> Plan {
         let mut entries: Vec<PlanEntry> = Vec::new();
         while from < to {
-            match self.sequence_next_entry(from) {
-                Some(entry) => {
-                    if entry.planned_for() > to {
-                        break;
-                    }
-
-                    from += entry.duration().timedelta();
-                    entries.push(entry);
-                }
-                None => {
-                    if let Some(delta) = self.book.min_fwd_delta_chrono(from) {
-                        from += delta;
-                    } else {
-                        panic!("...");
-                    }
-                }
+            let Some(entry) = self.sequence_next_entry_at_or_after(from) else {
+                break;
+            };
+            if entry.planned_for() > to {
+                break;
             }
+
+            from = entry.planned_for() + entry.duration().timedelta();
+            entries.push(entry);
         }
 
         Plan::new(entries)
     }
 
-    pub fn sequence_next_entry(&mut self, ts: DateTime<Local>) -> Option<PlanEntry> {
-        self.sequencers
-            .iter_mut()
-            .find(|(_, sequencer)| sequencer.accepts(ts))
-            .map(|(blueprint, sequencer)| {
-                sequencer.commit(ts);
-                PlanEntry::new(
-                    blueprint.id().to_string(),
-                    blueprint.estimated_duration(),
-                    ts,
-                )
+    pub fn sequence_next_entry_at_or_after(&mut self, ts: DateTime<Local>) -> Option<PlanEntry> {
+        let (idx, planned_for) = self
+            .sequencers
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, (blueprint, sequencer))| {
+                self.next_fitting_candidate(blueprint, sequencer, ts)
+                    .map(|candidate| (idx, candidate))
             })
+            .min_by_key(|(idx, candidate)| (*candidate, *idx))?;
+
+        let (blueprint, sequencer) = &mut self.sequencers[idx];
+        let duration = blueprint.estimated_duration();
+
+        debug_assert!(sequencer.accepts(planned_for));
+        debug_assert!(blueprint.availability().can_fit(planned_for, duration));
+        sequencer.commit(planned_for);
+
+        Some(PlanEntry::new(
+            blueprint.id().to_string(),
+            duration,
+            planned_for,
+        ))
+    }
+
+    fn next_fitting_candidate(
+        &self,
+        blueprint: &Blueprint,
+        sequencer: &Sequencer,
+        ts: DateTime<Local>,
+    ) -> Option<DateTime<Local>> {
+        let availability = blueprint.availability();
+        let duration = blueprint.estimated_duration();
+        let mut candidate = sequencer.next_candidate_at_or_after(ts)?;
+        let search_limit = candidate + chrono::TimeDelta::days(8);
+
+        while candidate < search_limit {
+            if availability.can_fit(candidate, duration) {
+                return Some(candidate);
+            }
+
+            let window_end = availability.window_end_after(candidate)?;
+            candidate = sequencer.next_candidate_at_or_after(window_end)?;
+        }
+
+        None
     }
 }
 #[cfg(test)]
 mod test {
 
     use chrono::TimeDelta;
-    use chrono::TimeZone;
     use pretty_assertions::assert_eq;
 
     use super::*;
+    use crate::test::d;
+    use crate::types::Availability;
     use crate::types::Blueprint;
     use crate::types::Duration;
     use crate::types::HourSlot;
     use crate::types::Priority;
     use crate::types::Recurrence;
-    use crate::types::Slot;
     use crate::types::TimeUnit;
+    use crate::types::WeekSlot;
     use crate::types::experimental::journal::Commit;
 
     #[test]
     fn test_schedule() {
-        let eight_am = Slot::Hour(HourSlot::Fixed { hour: 8 });
-        let morning = Slot::Hour(HourSlot::Range { start: 8, stop: 12 });
         let daily = Recurrence::Period {
             spacing: Duration::of(1, TimeUnit::Day),
         };
@@ -98,7 +117,7 @@ mod test {
                 one_hour,
                 Priority::Crit,
                 daily,
-                eight_am,
+                Availability::new(WeekSlot::full(), HourSlot::Fixed { hour: 8 }),
             ),
             Blueprint::new(
                 "2".into(),
@@ -106,7 +125,7 @@ mod test {
                 one_hour,
                 Priority::Norm,
                 daily,
-                morning,
+                Availability::new(WeekSlot::full(), HourSlot::Range { start: 8, stop: 12 }),
             ),
         ]);
 
@@ -146,29 +165,11 @@ mod test {
         ]);
 
         let plan = Scheduler::new(book, journal).schedule(from, from + TimeDelta::days(7));
-        let expected = "
-1 2026-10-23T08:00:00+02:00
-2 2026-10-23T09:00:00+02:00
-1 2026-10-24T08:00:00+02:00
-2 2026-10-24T09:00:00+02:00
-1 2026-10-25T08:00:00+01:00
-2 2026-10-25T09:00:00+01:00
-1 2026-10-26T08:00:00+01:00
-2 2026-10-26T09:00:00+01:00
-1 2026-10-27T08:00:00+01:00
-2 2026-10-27T09:00:00+01:00
-1 2026-10-28T08:00:00+01:00
-2 2026-10-28T09:00:00+01:00
-1 2026-10-29T08:00:00+01:00
-2 2026-10-29T09:00:00+01:00";
-
         assert_eq!(expected.trim(), plan.as_str().trim());
     }
 
     #[test]
     fn test_schedule_hourly_task_one_day() {
-        // A 2h30m task recurring with 1h spacing: the duration dominates the
-        // pacing, so executions start every 2h30m all day long.
         let bp_hourly = Blueprint::new(
             "id-1".into(),
             "Hourly Task".into(),
@@ -177,40 +178,103 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::hours(1),
             },
-            Slot::Hour(HourSlot::Range { start: 0, stop: 23 }),
+            Availability::full_week_all_day(),
         );
 
         let book = Book::new(vec![bp_hourly]);
-
-        // A completion at 01:30 shifts the phase: the next execution may not
-        // start before 01:30, so the plan window opens there.
         let journal = Journal::new(vec![Commit::completed(
             "id-1".into(),
             d(2026, 6, 15, 1, 30, 0),
         )]);
 
-        // TODO: Switch to 00:00:00 once edge case fixed
-        let from = d(2026, 6, 15, 1, 30, 0);
+        let from = d(2026, 6, 15, 0, 0, 0);
         let plan = Scheduler::new(book, journal).schedule(from, from + TimeDelta::days(1));
 
         let expected = "
-id-1 2026-06-15T01:30:00+02:00
-id-1 2026-06-15T04:00:00+02:00
-id-1 2026-06-15T06:30:00+02:00
-id-1 2026-06-15T09:00:00+02:00
-id-1 2026-06-15T11:30:00+02:00
-id-1 2026-06-15T14:00:00+02:00
-id-1 2026-06-15T16:30:00+02:00
-id-1 2026-06-15T19:00:00+02:00
-id-1 2026-06-15T21:30:00+02:00
-id-1 2026-06-16T00:00:00+02:00";
+id-1 2026-06-15T02:30:00+02:00
+id-1 2026-06-15T05:00:00+02:00
+id-1 2026-06-15T07:30:00+02:00
+id-1 2026-06-15T10:00:00+02:00
+id-1 2026-06-15T12:30:00+02:00
+id-1 2026-06-15T15:00:00+02:00
+id-1 2026-06-15T17:30:00+02:00
+id-1 2026-06-15T20:00:00+02:00
+id-1 2026-06-15T22:30:00+02:00";
 
         assert_eq!(expected.trim(), plan.as_str().trim());
     }
 
-    fn d(year: i32, month: u32, day: u32, hour: u32, minute: u32, sec: u32) -> DateTime<Local> {
-        Local
-            .with_ymd_and_hms(year, month, day, hour, minute, sec)
-            .unwrap()
+    #[test]
+    fn test_schedule_availability_only_blueprint() {
+        let book = Book::new(vec![Blueprint::new(
+            "1".into(),
+            "Workday Task".into(),
+            Duration::hours(1),
+            Priority::Crit,
+            Recurrence::Period {
+                spacing: Duration::days(1),
+            },
+            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
+        )]);
+
+        let from = d(2026, 6, 20, 10, 0, 0);
+        let plan =
+            Scheduler::new(book, Journal::new(vec![])).schedule(from, from + TimeDelta::days(3));
+
+        let expected = "
+1 2026-06-22T08:00:00+02:00
+1 2026-06-23T08:00:00+02:00";
+
+        assert_eq!(expected.trim(), plan.as_str().trim());
+    }
+
+    #[test]
+    fn test_schedule_skips_candidate_that_does_not_fit_window() {
+        let book = Book::new(vec![
+            Blueprint::new(
+                "1".into(),
+                "First Morning Task".into(),
+                Duration::minutes(90),
+                Priority::Crit,
+                Recurrence::Once,
+                Availability::workdays(HourSlot::Range { start: 8, stop: 10 }),
+            ),
+            Blueprint::new(
+                "2".into(),
+                "Second Morning Task".into(),
+                Duration::hours(2),
+                Priority::Norm,
+                Recurrence::Once,
+                Availability::workdays(HourSlot::Range { start: 8, stop: 10 }),
+            ),
+        ]);
+
+        let from = d(2026, 6, 22, 8, 0, 0);
+        let plan =
+            Scheduler::new(book, Journal::new(vec![])).schedule(from, from + TimeDelta::days(2));
+
+        let expected = "
+1 2026-06-22T08:00:00+02:00
+2 2026-06-23T08:00:00+02:00";
+
+        assert_eq!(expected.trim(), plan.as_str().trim());
+    }
+
+    #[test]
+    fn test_schedule_drops_task_that_can_never_fit_any_window() {
+        let book = Book::new(vec![Blueprint::new(
+            "1".into(),
+            "Impossible Morning Task".into(),
+            Duration::hours(4),
+            Priority::Crit,
+            Recurrence::Once,
+            Availability::workdays(HourSlot::Range { start: 8, stop: 10 }),
+        )]);
+
+        let from = d(2026, 6, 22, 8, 0, 0);
+        let plan =
+            Scheduler::new(book, Journal::new(vec![])).schedule(from, from + TimeDelta::days(2));
+
+        assert_eq!("", plan.as_str().trim());
     }
 }

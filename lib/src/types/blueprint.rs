@@ -1,16 +1,16 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::types::Availability;
 use crate::types::Duration;
 use crate::types::Priority;
 use crate::types::Recurrence;
-use crate::types::Slot;
 
 /// A template for creating recurring tasks or events.
 ///
 /// Blueprints define the core properties of a recurring item:
 /// - How long it takes (`estimated_duration`)
-/// - When it's preferred to be scheduled (`preferred_slot`)
+/// - When it may be scheduled (`availability`)
 /// - How often it repeats (`recurrence`)
 /// - Its urgency level (`priority`)
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -20,7 +20,7 @@ pub struct Blueprint {
     estimated_duration: Duration,
     priority: Priority,
     recurrence: Recurrence,
-    preferred_slot: Slot,
+    availability: Availability,
 }
 
 impl Blueprint {
@@ -30,7 +30,7 @@ impl Blueprint {
         estimated_duration: Duration,
         priority: Priority,
         recurrence: Recurrence,
-        preferred_slot: Slot,
+        availability: Availability,
     ) -> Self {
         Self {
             id,
@@ -38,7 +38,7 @@ impl Blueprint {
             estimated_duration,
             priority,
             recurrence,
-            preferred_slot,
+            availability,
         }
     }
 
@@ -62,8 +62,8 @@ impl Blueprint {
         self.recurrence
     }
 
-    pub const fn preferred_slot(&self) -> Slot {
-        self.preferred_slot
+    pub const fn availability(&self) -> Availability {
+        self.availability
     }
 }
 
@@ -75,7 +75,7 @@ impl std::fmt::Display for Blueprint {
             self.priority(),
             self.recurrence(),
             self.estimated_duration(),
-            self.preferred_slot()
+            self.availability()
         ))
     }
 }
@@ -99,10 +99,13 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::of(1, TimeUnit::Year),
             },
-            Slot::Hour(HourSlot::Range {
-                start: 10,
-                stop: 13,
-            }),
+            Availability::new(
+                WeekSlot::full(),
+                HourSlot::Range {
+                    start: 10,
+                    stop: 13,
+                },
+            ),
         )
     }
 
@@ -119,9 +122,21 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::of(3, TimeUnit::Month),
             },
-            Slot::Week(WeekSlot::workdays()),
+            Availability::anytime(WeekSlot::workdays()),
         );
         assert_eq!("1 CRIT ^3mo 1h Mon-Fri", sut.to_string());
+
+        let sut = Blueprint::new(
+            "1".to_string(),
+            "Clean VAC filters".to_string(),
+            Duration::hours(1),
+            Priority::Crit,
+            Recurrence::Period {
+                spacing: Duration::of(3, TimeUnit::Month),
+            },
+            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
+        );
+        assert_eq!("1 CRIT ^3mo 1h Mon-Fri 08:00-12:00", sut.to_string());
     }
 
     #[test]
@@ -139,7 +154,7 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::of(3, TimeUnit::Month),
             },
-            Slot::Week(WeekSlot::workdays()),
+            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
         );
         let json = serde_json::to_string(&sut).unwrap();
         let back: Blueprint = serde_json::from_str(&json).unwrap();

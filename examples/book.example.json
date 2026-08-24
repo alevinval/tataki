@@ -16,8 +16,14 @@
           }
         }
       },
-      "preferred_slot": {
-        "Hour": {
+      "availability": {
+        "days": {
+          "Range": {
+            "start": "Mon",
+            "stop": "Sun"
+          }
+        },
+        "hours": {
           "Fixed": {
             "hour": 8
           }
@@ -40,8 +46,14 @@
           }
         }
       },
-      "preferred_slot": {
-        "Hour": {
+      "availability": {
+        "days": {
+          "Range": {
+            "start": "Mon",
+            "stop": "Sun"
+          }
+        },
+        "hours": {
           "Range": {
             "start": 8,
             "stop": 12

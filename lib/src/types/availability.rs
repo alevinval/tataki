@@ -2,6 +2,7 @@ use chrono::DateTime;
 use chrono::Datelike;
 use chrono::Days;
 use chrono::Local;
+use chrono::NaiveDate;
 use chrono::TimeDelta;
 use chrono::TimeZone;
 use chrono::Timelike;
@@ -19,6 +20,10 @@ pub struct Availability {
 }
 
 impl Availability {
+    const ALL_DAY_HOURS: HourSlot = HourSlot::Range { start: 0, stop: 23 };
+    const MAX_DAY_SCAN: u64 = 7;
+    const MAX_HOUR_SCAN: i64 = 24 * 8;
+
     pub const fn new(days: WeekSlot, hours: HourSlot) -> Self {
         Self { days, hours }
     }
@@ -34,11 +39,11 @@ impl Availability {
     }
 
     pub const fn anytime(days: WeekSlot) -> Self {
-        Self::new(days, HourSlot::Range { start: 0, stop: 23 })
+        Self::new(days, Self::ALL_DAY_HOURS)
     }
 
     pub const fn full_week_all_day() -> Self {
-        Self::new(WeekSlot::full(), HourSlot::Range { start: 0, stop: 23 })
+        Self::new(WeekSlot::full(), Self::ALL_DAY_HOURS)
     }
 
     pub const fn days(&self) -> WeekSlot {
@@ -50,7 +55,7 @@ impl Availability {
     }
 
     pub fn contains<T: TimeZone>(&self, ts: DateTime<T>) -> bool {
-        self.days.matches_chrono(ts.clone()) && self.hours.matches_chrono(ts)
+        self.days.matches(ts.weekday().into()) && self.hours.matches(ts.hour())
     }
 
     pub fn backward_delta_chrono(&self, ts: DateTime<Local>) -> TimeDelta {
@@ -64,23 +69,11 @@ impl Availability {
             return ts;
         }
 
-        let start_hour = self.start_hour();
-
-        (0..=7)
-            .filter_map(|days_fwd| {
-                let date = ts.date_naive() + Days::new(days_fwd);
-                let day = date.weekday().into();
-                if !self.days.matches(day) {
-                    return None;
-                }
-
-                let candidate = Local
-                    .with_ymd_and_hms(date.year(), date.month(), date.day(), start_hour, 0, 0)
-                    .unwrap();
-
-                (candidate >= ts).then_some(candidate)
-            })
-            .min()
+        (0..=Self::MAX_DAY_SCAN)
+            .map(|days_fwd| ts.date_naive() + Days::new(days_fwd))
+            .filter(|date| self.days.matches(date.weekday().into()))
+            .map(|date| self.window_start_on(date))
+            .find(|candidate| *candidate >= ts)
             .expect("availability must have a next matching window")
     }
 
@@ -91,7 +84,7 @@ impl Availability {
         }
 
         let mut boundary = self.next_hour_boundary(ts);
-        for _ in 0..=(24 * 8) {
+        for _ in 0..=Self::MAX_HOUR_SCAN {
             if !self.contains(boundary) {
                 return Some(boundary);
             }
@@ -115,24 +108,25 @@ impl Availability {
     }
 
     fn most_recent_window_start(&self, ts: DateTime<Local>) -> DateTime<Local> {
-        let start_hour = self.start_hour();
-
-        (0..=7)
-            .filter_map(|days_back| {
-                let date = ts.date_naive() - Days::new(days_back);
-                let day = date.weekday().into();
-                if !self.days.matches(day) {
-                    return None;
-                }
-
-                let candidate = Local
-                    .with_ymd_and_hms(date.year(), date.month(), date.day(), start_hour, 0, 0)
-                    .unwrap();
-
-                (candidate <= ts).then_some(candidate)
-            })
-            .max()
+        (0..=Self::MAX_DAY_SCAN)
+            .map(|days_back| ts.date_naive() - Days::new(days_back))
+            .filter(|date| self.days.matches(date.weekday().into()))
+            .map(|date| self.window_start_on(date))
+            .find(|candidate| *candidate <= ts)
             .expect("availability must have a previous matching window")
+    }
+
+    fn window_start_on(&self, date: NaiveDate) -> DateTime<Local> {
+        Local
+            .with_ymd_and_hms(
+                date.year(),
+                date.month(),
+                date.day(),
+                self.start_hour(),
+                0,
+                0,
+            )
+            .unwrap()
     }
 
     fn next_hour_boundary(&self, ts: DateTime<Local>) -> DateTime<Local> {
@@ -147,7 +141,7 @@ impl Availability {
 impl std::fmt::Display for Availability {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let full_week = self.days == WeekSlot::full();
-        let all_day = self.hours == HourSlot::Range { start: 0, stop: 23 };
+        let all_day = self.hours == Self::ALL_DAY_HOURS;
 
         match (full_week, all_day) {
             (true, true) => f.write_str("Mon-Sun 00:00-23:00"),

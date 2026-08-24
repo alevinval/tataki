@@ -13,6 +13,10 @@ impl Plan {
         Self { entries }
     }
 
+    pub fn entries(&self) -> &[PlanEntry] {
+        &self.entries
+    }
+
     pub fn as_str(&self) -> String {
         let mut out = String::new();
         for entry in self.entries.iter() {

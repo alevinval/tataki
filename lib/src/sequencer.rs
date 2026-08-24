@@ -1,21 +1,16 @@
 use chrono::DateTime;
 use chrono::Local;
 
+use crate::types::Availability;
 use crate::types::Blueprint;
 use crate::types::Recurrence;
-use crate::types::Slot;
 use crate::types::experimental::journal::Action;
 use crate::types::experimental::journal::Journal;
 
-/// Sequences timestamps that match a [Recurrence] pattern within a [Slot].
-///
-/// Think of it as an iterator that:
-/// - Validates incoming timestamps against a slot (e.g., "every hour at minute
-///   0")
-/// - Enforces spacing between accepted timestamps (from recurrence)
-/// - Tracks remaining count (stops after N occurrences)
+/// Sequences timestamps that satisfy a [Recurrence] within an
+/// [Availability].
 pub struct Sequencer {
-    slot: Slot,
+    availability: Availability,
     recurrence: Recurrence,
     remaining: Option<usize>,
     next_minimum_ts: Option<DateTime<Local>>,
@@ -24,28 +19,25 @@ pub struct Sequencer {
 impl Sequencer {
     pub fn new(
         recurrence: Recurrence,
-        slot: Slot,
+        availability: Availability,
         last_committed_at: Option<DateTime<Local>>,
     ) -> Self {
         Self {
-            slot,
+            availability,
             recurrence,
             remaining: recurrence.remaining(),
             next_minimum_ts: last_committed_at
-                .map(|ts| recurrence.spaced(ts) - slot.backward_delta_chrono(ts)),
+                .map(|ts| Self::next_minimum_after(recurrence, availability, ts)),
         }
     }
 
     pub fn from(blueprint: &Blueprint, journal: &Journal) -> Self {
         Self::new(
             blueprint.recurrence(),
-            blueprint.preferred_slot(),
-            journal
-                .last_commit_for(blueprint.id())
-                .and_then(|commit| match commit.action() {
-                    Action::Completed => Some(commit.committed_at()),
-                    Action::Postponed => None,
-                }),
+            blueprint.availability(),
+            journal.last_commit_for(blueprint.id()).and_then(|commit| {
+                matches!(commit.action(), Action::Completed).then_some(commit.committed_at())
+            }),
         )
     }
 
@@ -61,11 +53,21 @@ impl Sequencer {
             return false;
         }
 
-        if !self.slot.matches_chrono(ts) {
+        if !self.availability.contains(ts) {
             return false;
         }
 
         true
+    }
+
+    /// Returns the earliest candidate timestamp at or after `ts`.
+    pub fn next_candidate_at_or_after(&self, ts: DateTime<Local>) -> Option<DateTime<Local>> {
+        if let Some(0) = self.remaining {
+            return None;
+        }
+
+        let earliest = self.next_minimum_ts.map_or(ts, |next| next.max(ts));
+        Some(self.availability.next_window_start_at_or_after(earliest))
     }
 
     /// Records `ts` as the next occurrence in the sequence.
@@ -79,8 +81,26 @@ impl Sequencer {
             *r = r.saturating_sub(1);
         }
 
-        self.next_minimum_ts =
-            Some(self.recurrence.spaced(ts) - self.slot.backward_delta_chrono(ts));
+        self.next_minimum_ts = Some(Self::next_minimum_after(
+            self.recurrence,
+            self.availability,
+            ts,
+        ));
+    }
+
+    fn next_minimum_after(
+        recurrence: Recurrence,
+        availability: Availability,
+        ts: DateTime<Local>,
+    ) -> DateTime<Local> {
+        let spaced = recurrence.spaced(ts);
+        let inside_window = availability.contains(ts);
+
+        if inside_window && availability.window_end_after(ts).is_none() {
+            spaced
+        } else {
+            spaced - availability.backward_delta_chrono(ts)
+        }
     }
 }
 
@@ -89,8 +109,10 @@ mod test {
 
     use super::*;
     use crate::test::d;
+    use crate::types::Availability;
     use crate::types::Duration;
     use crate::types::HourSlot;
+    use crate::types::WeekSlot;
 
     #[test]
     fn test_accepts() {
@@ -99,7 +121,7 @@ mod test {
                 count: 3,
                 spacing: Duration::hours(4),
             },
-            Slot::Hour(HourSlot::Fixed { hour: 3 }),
+            Availability::new(WeekSlot::full(), HourSlot::Fixed { hour: 3 }),
             None,
         );
 
@@ -120,51 +142,102 @@ mod test {
                 count: 2,
                 spacing: Duration::days(2),
             },
-            Slot::Hour(HourSlot::Range { start: 3, stop: 5 }),
+            Availability::new(WeekSlot::full(), HourSlot::Range { start: 3, stop: 5 }),
             None,
         );
 
-        // Outside slot.
+        // Outside availability.
         let ts = d(2025, 10, 23, 14, 0, 0);
         assert!(!sut.accepts(ts));
 
-        // Inside slot. Consume.
+        // Inside availability. Consume.
         let ts = d(2025, 10, 23, 4, 0, 0);
         assert!(sut.accepts(ts));
         sut.commit(ts);
         assert!(!sut.accepts(ts));
 
-        // Inside slot, but not spaced enough.
+        // Inside availability, but not spaced enough.
         let ts = d(2025, 10, 24, 4, 0, 0);
         assert!(!sut.accepts(ts));
 
-        // Inside slot, properly spaced. Consume.
+        // Inside availability, properly spaced. Consume.
         let ts = d(2025, 10, 25, 4, 0, 0);
         assert!(sut.accepts(ts));
         sut.commit(ts);
 
-        // Inside slot, properly spaced, but no more recurrences available.
+        // Inside availability, properly spaced, but no more recurrences available.
         let ts = d(2025, 10, 27, 4, 0, 0);
         assert!(!sut.accepts(ts));
     }
 
     #[test]
-    fn test_next_minimum_ts_with_backward_delta() {
-        let slot = Slot::Hour(HourSlot::Fixed { hour: 8 });
+    fn test_next_minimum_ts_keeps_exact_spacing_for_continuous_availability() {
+        let availability = Availability::full_week_all_day();
+        let recurrence = Recurrence::Period {
+            spacing: Duration::hours(1),
+        };
+
+        let ts = d(2026, 6, 15, 1, 30, 0);
+        let sut = Sequencer::new(recurrence, availability, Some(ts));
+        assert_eq!(sut.next_minimum_ts, Some(d(2026, 6, 15, 2, 30, 0)));
+    }
+
+    #[test]
+    fn test_next_minimum_ts_snaps_to_next_window_start_after_window_boundary() {
+        let availability = Availability::new(WeekSlot::full(), HourSlot::Fixed { hour: 8 });
         let recurrence = Recurrence::Period {
             spacing: Duration::hours(6),
         };
 
-        // Case 1: First commit at 08:00
         let ts_0800 = d(2026, 1, 1, 8, 0, 0);
-        let sut = Sequencer::new(recurrence, slot, Some(ts_0800));
-        // next_minimum_ts = 14:00 - 0 = 14:00
+        let sut = Sequencer::new(recurrence, availability, Some(ts_0800));
         assert_eq!(sut.next_minimum_ts, Some(d(2026, 1, 1, 14, 0, 0)));
 
-        // Case 2: Scheduler advances to 09:00 and commits there
         let ts_0900 = d(2026, 1, 1, 9, 0, 0);
-        let sut2 = Sequencer::new(recurrence, slot, Some(ts_0900));
-        // next_minimum_ts = 15:00 - 1h = 14:00
+        let sut2 = Sequencer::new(recurrence, availability, Some(ts_0900));
         assert_eq!(sut2.next_minimum_ts, Some(d(2026, 1, 1, 14, 0, 0)));
+
+        let ts_0930 = d(2026, 1, 1, 9, 30, 0);
+        let sut3 = Sequencer::new(recurrence, availability, Some(ts_0930));
+        assert_eq!(sut3.next_minimum_ts, Some(d(2026, 1, 1, 14, 0, 0)));
+    }
+
+    #[test]
+    fn test_accepts_combined_availability() {
+        let sut = Sequencer::new(
+            Recurrence::Period {
+                spacing: Duration::days(1),
+            },
+            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
+            None,
+        );
+
+        assert!(sut.accepts(d(2026, 10, 26, 9, 0, 0)));
+        assert!(!sut.accepts(d(2026, 10, 24, 9, 0, 0)));
+        assert!(!sut.accepts(d(2026, 10, 26, 13, 0, 0)));
+    }
+
+    #[test]
+    fn test_next_candidate_at_or_after() {
+        let sut = Sequencer::new(
+            Recurrence::Period {
+                spacing: Duration::days(1),
+            },
+            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
+            Some(d(2026, 6, 19, 9, 30, 0)),
+        );
+
+        assert_eq!(
+            Some(d(2026, 6, 22, 8, 0, 0)),
+            sut.next_candidate_at_or_after(d(2026, 6, 20, 10, 0, 0))
+        );
+        assert_eq!(
+            Some(d(2026, 6, 22, 9, 0, 0)),
+            sut.next_candidate_at_or_after(d(2026, 6, 22, 9, 0, 0))
+        );
+        assert_eq!(
+            Some(d(2026, 6, 23, 8, 0, 0)),
+            sut.next_candidate_at_or_after(d(2026, 6, 22, 13, 0, 0))
+        );
     }
 }
