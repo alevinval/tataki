@@ -19,11 +19,35 @@ pub mod test {
     use chrono::Local;
     use chrono::TimeZone;
 
+    use crate::types::Blueprint;
+    use crate::types::experimental::book::Book;
+
     // Generate datetime on tests, with less verbosity.
     pub fn d(year: i32, month: u32, day: u32, hour: u32, minute: u32, sec: u32) -> DateTime<Local> {
         Local
             .with_ymd_and_hms(year, month, day, hour, minute, sec)
             .unwrap()
+    }
+
+    /// Create a blueprint from a DSL line for tests:
+    /// `{id} {priority} {recurrence} {duration} {availability}`.
+    /// The description is always empty; tests must not depend on it.
+    pub fn dsl_blueprint(s: &str) -> Blueprint {
+        let (id, priority, recurrence, duration, availability) =
+            crate::parser::blueprint(s).unwrap();
+        Blueprint::new(
+            id,
+            String::new(),
+            duration,
+            priority,
+            recurrence,
+            availability,
+        )
+    }
+
+    /// Create a book from DSL lines.
+    pub fn dsl_book(lines: &[&str]) -> Book {
+        Book::new(lines.iter().map(|s| dsl_blueprint(s)).collect())
     }
 
     /// Create a fresh temp directory for tests that need the filesystem.

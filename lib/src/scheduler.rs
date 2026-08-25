@@ -252,42 +252,12 @@ mod test {
 
     use super::*;
     use crate::test::d;
-    use crate::types::Availability;
-    use crate::types::Blueprint;
-    use crate::types::Duration;
-    use crate::types::HourSlot;
-    use crate::types::Priority;
-    use crate::types::Recurrence;
-    use crate::types::TimeUnit;
-    use crate::types::WeekSlot;
+    use crate::test::dsl_book;
     use crate::types::experimental::journal::Commit;
 
     #[test]
     fn test_schedule() {
-        let daily = Recurrence::Period {
-            spacing: Duration::of(1, TimeUnit::Day),
-        };
-
-        let one_hour = Duration::of(1, TimeUnit::Hour);
-
-        let book = Book::new(vec![
-            Blueprint::new(
-                "1".into(),
-                "Task A".into(),
-                one_hour,
-                Priority::Crit,
-                daily,
-                Availability::new(WeekSlot::full(), HourSlot::Fixed { hour: 8 }),
-            ),
-            Blueprint::new(
-                "2".into(),
-                "Task B".into(),
-                one_hour,
-                Priority::Norm,
-                daily,
-                Availability::new(WeekSlot::full(), HourSlot::Range { start: 8, stop: 12 }),
-            ),
-        ]);
+        let book = dsl_book(&["1 CRIT ^1d 1h 08:00", "2 NORM ^1d 1h 08:00-12:00"]);
 
         let expected = "
 
@@ -330,18 +300,7 @@ mod test {
 
     #[test]
     fn test_schedule_hourly_task_one_day() {
-        let bp_hourly = Blueprint::new(
-            "id-1".into(),
-            "Hourly Task".into(),
-            Duration::hours(2) + Duration::minutes(30),
-            Priority::Norm,
-            Recurrence::Period {
-                spacing: Duration::hours(1),
-            },
-            Availability::full_week_all_day(),
-        );
-
-        let book = Book::new(vec![bp_hourly]);
+        let book = dsl_book(&["id-1 NORM ^1h 9000s 00:00-23:00"]);
         let journal = Journal::new(vec![Commit::completed(
             "id-1".into(),
             d(2026, 6, 15, 1, 30, 0),
@@ -366,16 +325,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_availability_only_blueprint() {
-        let book = Book::new(vec![Blueprint::new(
-            "1".into(),
-            "Workday Task".into(),
-            Duration::hours(1),
-            Priority::Crit,
-            Recurrence::Period {
-                spacing: Duration::days(1),
-            },
-            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
-        )]);
+        let book = dsl_book(&["1 CRIT ^1d 1h Mon-Fri 08:00-12:00"]);
 
         let from = d(2026, 6, 20, 10, 0, 0);
         let plan =
@@ -390,23 +340,9 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_skips_candidate_that_does_not_fit_window() {
-        let book = Book::new(vec![
-            Blueprint::new(
-                "1".into(),
-                "First Morning Task".into(),
-                Duration::minutes(90),
-                Priority::Crit,
-                Recurrence::Once,
-                Availability::workdays(HourSlot::Range { start: 8, stop: 10 }),
-            ),
-            Blueprint::new(
-                "2".into(),
-                "Second Morning Task".into(),
-                Duration::hours(2),
-                Priority::Norm,
-                Recurrence::Once,
-                Availability::workdays(HourSlot::Range { start: 8, stop: 10 }),
-            ),
+        let book = dsl_book(&[
+            "1 CRIT ^1 90min Mon-Fri 08:00-10:00",
+            "2 NORM ^1 2h Mon-Fri 08:00-10:00",
         ]);
 
         let from = d(2026, 6, 22, 8, 0, 0);
@@ -422,14 +358,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_drops_task_that_can_never_fit_any_window() {
-        let book = Book::new(vec![Blueprint::new(
-            "1".into(),
-            "Impossible Morning Task".into(),
-            Duration::hours(4),
-            Priority::Crit,
-            Recurrence::Once,
-            Availability::workdays(HourSlot::Range { start: 8, stop: 10 }),
-        )]);
+        let book = dsl_book(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 8, 0, 0);
         let plan =
@@ -440,14 +369,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_warns_when_due_task_can_never_fit_any_window() {
-        let book = Book::new(vec![Blueprint::new(
-            "1".into(),
-            "Impossible Morning Task".into(),
-            Duration::hours(4),
-            Priority::Crit,
-            Recurrence::Once,
-            Availability::workdays(HourSlot::Range { start: 8, stop: 10 }),
-        )]);
+        let book = dsl_book(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 8, 0, 0);
         let report = Scheduler::new(book, Journal::new(vec![]))
@@ -464,14 +386,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_does_not_warn_for_impossible_task_outside_range() {
-        let book = Book::new(vec![Blueprint::new(
-            "1".into(),
-            "Impossible Morning Task".into(),
-            Duration::hours(4),
-            Priority::Crit,
-            Recurrence::Once,
-            Availability::workdays(HourSlot::Range { start: 8, stop: 10 }),
-        )]);
+        let book = dsl_book(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 0, 0, 0);
         let report = Scheduler::new(book, Journal::new(vec![]))
@@ -483,30 +398,9 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_warns_for_every_conflicted_occurrence() {
-        let book = Book::new(vec![
-            Blueprint::new(
-                "2".into(),
-                "Team standup".into(),
-                Duration::minutes(30),
-                Priority::High,
-                Recurrence::Period {
-                    spacing: Duration::days(1),
-                },
-                Availability::workdays(HourSlot::Range {
-                    start: 10,
-                    stop: 11,
-                }),
-            ),
-            Blueprint::new(
-                "1".into(),
-                "Deep work".into(),
-                Duration::hours(4),
-                Priority::Norm,
-                Recurrence::Period {
-                    spacing: Duration::days(1),
-                },
-                Availability::new(WeekSlot::full(), HourSlot::Range { start: 8, stop: 12 }),
-            ),
+        let book = dsl_book(&[
+            "2 HIGH ^1d 30min Mon-Fri 10:00-11:00",
+            "1 NORM ^1d 4h 08:00-12:00",
         ]);
 
         let from = d(2026, 8, 25, 0, 0, 0);

@@ -183,7 +183,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::types::Blueprint;
+    use crate::test::dsl_blueprint;
 
     #[test]
     fn test_duration() {
@@ -348,40 +348,9 @@ mod test {
     #[test]
     fn test_roundtrip_blueprint() {
         let suts = [
-            Blueprint::new(
-                "2".to_string(),
-                "Clean VAC filters".to_string(),
-                Duration::hours(1),
-                Priority::Norm,
-                Recurrence::Period {
-                    spacing: Duration::days(1),
-                },
-                Availability::new(WeekSlot::full(), HourSlot::Range { start: 8, stop: 12 }),
-            ),
-            Blueprint::new(
-                "7".to_string(),
-                "Water plants".to_string(),
-                Duration::minutes(30),
-                Priority::Crit,
-                Recurrence::Times {
-                    count: 3,
-                    spacing: Duration::days(2),
-                },
-                Availability::anytime(WeekSlot::Range {
-                    start: DayOfWeek::Mon,
-                    stop: DayOfWeek::Fri,
-                }),
-            ),
-            Blueprint::new(
-                "9".to_string(),
-                "Deep work".to_string(),
-                Duration::hours(2),
-                Priority::High,
-                Recurrence::Period {
-                    spacing: Duration::days(1),
-                },
-                Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
-            ),
+            dsl_blueprint("2 NORM ^1d 1h 08:00-12:00"),
+            dsl_blueprint("7 CRIT ^{3,2d} 30min Mon-Fri"),
+            dsl_blueprint("9 HIGH ^1d 2h Mon-Fri 08:00-12:00"),
         ];
         for sut in suts {
             let (id, priority, recurrence, duration, availability) =
