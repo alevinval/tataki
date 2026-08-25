@@ -114,7 +114,11 @@ pub struct Scheduler {
 impl Scheduler {
     pub fn new(book: Book, journal: Journal) -> Self {
         Self {
-            sequencers: book.spawn_sequencers(&journal),
+            sequencers: book
+                .blueprints()
+                .iter()
+                .map(|bp| (bp.clone(), Sequencer::from(bp, &journal)))
+                .collect(),
         }
     }
 

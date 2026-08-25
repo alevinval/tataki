@@ -3,13 +3,11 @@ use std::cmp;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::sequencer::Sequencer;
 use crate::storage::StorageError;
 use crate::storage::Store;
 use crate::types::Blueprint;
-use crate::types::journal::Journal;
 
-/// Models a collection of blueprints.
+/// Keeps a collection of blueprints.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Book {
     blueprints: Vec<Blueprint>,
@@ -27,19 +25,10 @@ impl Book {
         &self.blueprints
     }
 
-    pub fn spawn_sequencers(&self, journal: &Journal) -> Vec<(Blueprint, Sequencer)> {
-        self.blueprints
-            .iter()
-            .map(|bp| (bp.clone(), Sequencer::from(bp, journal)))
-            .collect()
-    }
-
-    /// Load the book from the store.
     pub fn load(store: &Store) -> Result<Self, StorageError> {
         store.load(Self::FILE)
     }
 
-    /// Save the book to the store, atomically.
     pub fn save(&self, store: &Store) -> Result<(), StorageError> {
         store.save(Self::FILE, self)
     }
