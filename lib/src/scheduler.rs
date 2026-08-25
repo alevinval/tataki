@@ -5,10 +5,10 @@ use chrono::Local;
 
 use crate::sequencer::Sequencer;
 use crate::types::Blueprint;
-use crate::types::book::Book;
-use crate::types::journal::Journal;
-use crate::types::plan::Plan;
-use crate::types::plan_entry::PlanEntry;
+use crate::types::Book;
+use crate::types::Journal;
+use crate::types::Plan;
+use crate::types::PlanEntry;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ScheduleReport {
@@ -253,7 +253,7 @@ mod test {
     use super::*;
     use crate::test::d;
     use crate::test::dsl_book;
-    use crate::types::journal::Commit;
+    use crate::types::Commit;
 
     #[test]
     fn test_schedule() {

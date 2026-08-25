@@ -1,13 +1,13 @@
 //! Parsing of user-supplied strings for blueprint fields.
 
 use crate::types::Availability;
+use crate::types::DayOfWeek;
 use crate::types::Duration;
 use crate::types::HourSlot;
 use crate::types::Priority;
 use crate::types::Recurrence;
 use crate::types::TimeUnit;
 use crate::types::WeekSlot;
-use crate::types::days::DayOfWeek;
 
 /// Parses the `Display` form of a blueprint: `{id} {priority} {recurrence}`
 /// `{duration} {availability}`.

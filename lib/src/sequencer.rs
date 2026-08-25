@@ -1,11 +1,11 @@
 use chrono::DateTime;
 use chrono::Local;
 
+use crate::types::Action;
 use crate::types::Availability;
 use crate::types::Blueprint;
+use crate::types::Journal;
 use crate::types::Recurrence;
-use crate::types::journal::Action;
-use crate::types::journal::Journal;
 
 /// Sequences timestamps that satisfy a [Recurrence] within an
 /// [Availability].

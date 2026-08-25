@@ -20,7 +20,7 @@ pub mod test {
     use chrono::TimeZone;
 
     use crate::types::Blueprint;
-    use crate::types::book::Book;
+    use crate::types::Book;
 
     // Generate datetime on tests, with less verbosity.
     pub fn d(year: i32, month: u32, day: u32, hour: u32, minute: u32, sec: u32) -> DateTime<Local> {
