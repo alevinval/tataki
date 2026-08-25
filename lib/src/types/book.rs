@@ -16,9 +16,10 @@ pub struct Book {
 impl Book {
     const FILE: &str = "book.json";
 
-    pub fn new(mut blueprints: Vec<Blueprint>) -> Self {
-        blueprints.sort_by_key(|b| cmp::Reverse(b.priority()));
-        Self { blueprints }
+    pub fn new(blueprints: Vec<Blueprint>) -> Self {
+        let mut book = Self { blueprints };
+        book.sort();
+        book
     }
 
     pub fn blueprints(&self) -> &[Blueprint] {
@@ -26,11 +27,17 @@ impl Book {
     }
 
     pub fn load(store: &Store) -> Result<Self, StorageError> {
-        store.load(Self::FILE)
+        let mut book: Self = store.load(Self::FILE)?;
+        book.sort();
+        Ok(book)
     }
 
     pub fn save(&self, store: &Store) -> Result<(), StorageError> {
         store.save(Self::FILE, self)
+    }
+
+    fn sort(&mut self) {
+        self.blueprints.sort_by_key(|b| cmp::Reverse(b.priority()));
     }
 }
 
@@ -58,6 +65,17 @@ mod test {
         let sut = dsl_book(&["1 CRIT ^1 1h 08:00"]);
         sut.save(&store).unwrap();
         assert_eq!(sut, Book::load(&store).unwrap());
+    }
+
+    #[test]
+    fn test_load_sorts_blueprints() {
+        let dir = tmpdir("book_load_sorts");
+        let store = Store::open(&dir);
+        let expected = dsl_book(&["1 CRIT ^1 1h 08:00", "2 NORM ^1d 1h Mon-Fri"]);
+        let mut unsorted = expected.clone();
+        unsorted.blueprints.reverse();
+        store.save(Book::FILE, &unsorted).unwrap();
+        assert_eq!(Book::load(&store).unwrap(), expected);
     }
 
     #[test]
