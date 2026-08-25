@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::types::experimental::plan_entry::PlanEntry;
+use crate::types::plan_entry::PlanEntry;
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Plan {

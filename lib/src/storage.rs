@@ -227,9 +227,9 @@ mod test {
     use crate::test::d;
     use crate::test::dsl_book;
     use crate::test::tmpdir;
-    use crate::types::experimental::book::Book;
-    use crate::types::experimental::journal::Commit;
-    use crate::types::experimental::journal::Journal;
+    use crate::types::book::Book;
+    use crate::types::journal::Commit;
+    use crate::types::journal::Journal;
 
     #[test]
     fn test_save_load_roundtrip() {

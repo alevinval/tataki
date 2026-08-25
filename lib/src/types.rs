@@ -1,8 +1,11 @@
 mod availability;
 mod blueprint;
+pub mod book;
 pub mod days;
 mod duration;
-pub mod experimental;
+pub mod journal;
+pub mod plan;
+pub mod plan_entry;
 mod priority;
 mod recurrence;
 mod slots;

@@ -7,7 +7,7 @@ use crate::sequencer::Sequencer;
 use crate::storage::StorageError;
 use crate::storage::Store;
 use crate::types::Blueprint;
-use crate::types::experimental::journal::Journal;
+use crate::types::journal::Journal;
 
 /// Models a collection of blueprints.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -60,7 +60,7 @@ mod test {
     use crate::storage::Store;
     use crate::test::dsl_book;
     use crate::test::tmpdir;
-    use crate::types::experimental::book::Book;
+    use crate::types::book::Book;
 
     #[test]
     fn test_load_save_roundtrip() {

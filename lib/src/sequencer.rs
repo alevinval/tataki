@@ -4,8 +4,8 @@ use chrono::Local;
 use crate::types::Availability;
 use crate::types::Blueprint;
 use crate::types::Recurrence;
-use crate::types::experimental::journal::Action;
-use crate::types::experimental::journal::Journal;
+use crate::types::journal::Action;
+use crate::types::journal::Journal;
 
 /// Sequences timestamps that satisfy a [Recurrence] within an
 /// [Availability].

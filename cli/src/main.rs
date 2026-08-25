@@ -10,8 +10,8 @@ use tt_lib::StorageError;
 use tt_lib::Store;
 use tt_lib::parser;
 use tt_lib::types::Blueprint;
-use tt_lib::types::experimental::book::Book;
-use tt_lib::types::experimental::journal::Journal;
+use tt_lib::types::book::Book;
+use tt_lib::types::journal::Journal;
 
 #[derive(Parser)]
 struct Cli {
