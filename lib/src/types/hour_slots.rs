@@ -1,7 +1,3 @@
-use chrono::DateTime;
-use chrono::TimeDelta;
-use chrono::TimeZone;
-use chrono::Timelike;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -51,22 +47,6 @@ impl HourSlot {
             hour >= self.start || hour <= self.stop
         }
     }
-
-    pub fn forward_delta(&self, curr: u32) -> i64 {
-        if self.matches(curr) {
-            0
-        } else {
-            (self.start as i64 - curr as i64 + 24) % 24
-        }
-    }
-
-    pub fn matches_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> bool {
-        self.matches(ts.hour())
-    }
-
-    pub fn forward_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
-        TimeDelta::hours(self.forward_delta(ts.hour()))
-    }
 }
 
 impl std::fmt::Display for HourSlot {
@@ -81,9 +61,7 @@ impl std::fmt::Display for HourSlot {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
-    use crate::test::d;
 
     mod fixed {
 
@@ -95,30 +73,6 @@ mod test {
             assert!(sut.matches(12));
             assert!(!sut.matches(11));
             assert!(!sut.matches(13));
-        }
-
-        #[test]
-        fn test_forward_delta() {
-            let sut = HourSlot::fixed(12);
-            assert_eq!(4, sut.forward_delta(8));
-
-            let sut = HourSlot::fixed(12);
-            assert_eq!(0, sut.forward_delta(12));
-
-            let sut = HourSlot::fixed(12);
-            assert_eq!(22, sut.forward_delta(14));
-        }
-
-        #[test]
-        fn test_chrono_interop() {
-            let sut = HourSlot::fixed(12);
-            let input = d(2025, 10, 23, 14, 0, 0);
-
-            assert_eq!(TimeDelta::hours(22), sut.forward_delta_chrono(input));
-
-            assert!(sut.matches_chrono(input - TimeDelta::hours(2)));
-
-            assert!(!sut.matches_chrono(input));
         }
 
         #[test]
@@ -143,21 +97,6 @@ mod test {
 
             assert!(!sut.matches(4));
             assert!(!sut.matches(7));
-        }
-
-        #[test]
-        fn test_forward_delta() {
-            let sut = HourSlot::range(12, 15);
-            assert_eq!(4, sut.forward_delta(8));
-
-            let sut = HourSlot::range(12, 15);
-            assert_eq!(0, sut.forward_delta(12));
-
-            let sut = HourSlot::range(12, 15);
-            assert_eq!(0, sut.forward_delta(14));
-
-            let sut = HourSlot::range(12, 15);
-            assert_eq!(18, sut.forward_delta(18));
         }
 
         #[test]
