@@ -115,13 +115,7 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::of(1, TimeUnit::Year),
             },
-            Availability::new(
-                WeekSlot::full(),
-                HourSlot {
-                    start: 10,
-                    stop: 13,
-                },
-            ),
+            Availability::new(WeekSlot::full(), HourSlot::range(10, 13)),
         )
     }
 
@@ -150,7 +144,7 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::of(3, TimeUnit::Month),
             },
-            Availability::workdays(HourSlot { start: 8, stop: 12 }),
+            Availability::workdays(HourSlot::range(8, 12)),
         );
         assert_eq!("1 CRIT ^3mo 1h Mon-Fri 08:00-12:00", sut.to_string());
     }
@@ -170,7 +164,7 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::of(3, TimeUnit::Month),
             },
-            Availability::workdays(HourSlot { start: 8, stop: 12 }),
+            Availability::workdays(HourSlot::range(8, 12)),
         );
         let json = serde_json::to_string(&sut).unwrap();
         let back: Blueprint = serde_json::from_str(&json).unwrap();
