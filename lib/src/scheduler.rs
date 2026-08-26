@@ -256,12 +256,11 @@ mod test {
 
     use super::*;
     use crate::test::d;
-    use crate::test::dsl_book;
     use crate::types::Commit;
 
     #[test]
     fn test_schedule() {
-        let book = dsl_book(&["1 CRIT ^1d 1h 08:00", "2 NORM ^1d 1h 08:00-12:00"]);
+        let book = Book::from_dsl(&["1 CRIT ^1d 1h 08:00", "2 NORM ^1d 1h 08:00-12:00"]);
 
         let expected = "
 
@@ -304,7 +303,7 @@ mod test {
 
     #[test]
     fn test_schedule_hourly_task_one_day() {
-        let book = dsl_book(&["id-1 NORM ^1h 9000s 00:00-23:00"]);
+        let book = Book::from_dsl(&["id-1 NORM ^1h 9000s 00:00-23:00"]);
         let journal = Journal::new(vec![Commit::completed(
             "id-1".into(),
             d(2026, 6, 15, 1, 30, 0),
@@ -329,7 +328,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_availability_only_blueprint() {
-        let book = dsl_book(&["1 CRIT ^1d 1h Mon-Fri 08:00-12:00"]);
+        let book = Book::from_dsl(&["1 CRIT ^1d 1h Mon-Fri 08:00-12:00"]);
 
         let from = d(2026, 6, 20, 10, 0, 0);
         let plan =
@@ -344,7 +343,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_skips_candidate_that_does_not_fit_window() {
-        let book = dsl_book(&[
+        let book = Book::from_dsl(&[
             "1 CRIT ^1 90min Mon-Fri 08:00-10:00",
             "2 NORM ^1 2h Mon-Fri 08:00-10:00",
         ]);
@@ -362,7 +361,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_drops_task_that_can_never_fit_any_window() {
-        let book = dsl_book(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
+        let book = Book::from_dsl(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 8, 0, 0);
         let plan =
@@ -373,7 +372,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_warns_when_due_task_can_never_fit_any_window() {
-        let book = dsl_book(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
+        let book = Book::from_dsl(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 8, 0, 0);
         let report = Scheduler::new(book, Journal::new(vec![]))
@@ -390,7 +389,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_does_not_warn_for_impossible_task_outside_range() {
-        let book = dsl_book(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
+        let book = Book::from_dsl(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 0, 0, 0);
         let report = Scheduler::new(book, Journal::new(vec![]))
@@ -402,7 +401,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_warns_for_every_conflicted_occurrence() {
-        let book = dsl_book(&[
+        let book = Book::from_dsl(&[
             "2 HIGH ^1d 30min Mon-Fri 10:00-11:00",
             "1 NORM ^1d 4h 08:00-12:00",
         ]);

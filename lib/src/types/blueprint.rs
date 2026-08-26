@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::parser;
 use crate::types::Availability;
 use crate::types::Duration;
 use crate::types::Priority;
@@ -24,6 +25,21 @@ pub struct Blueprint {
 }
 
 impl Blueprint {
+    /// Create a blueprint from a DSL line:
+    /// `{id} {priority} {recurrence} {duration} {availability}`.
+    /// The description is always empty.
+    pub fn from_dsl(s: &str) -> Self {
+        let (id, priority, recurrence, duration, availability) = parser::blueprint(s).unwrap();
+        Self::new(
+            id,
+            String::new(),
+            duration,
+            priority,
+            recurrence,
+            availability,
+        )
+    }
+
     pub fn new(
         id: String,
         description: String,

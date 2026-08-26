@@ -225,7 +225,6 @@ fn ensure_dir(dir: &Path) -> Result<(), StorageError> {
 mod test {
     use super::*;
     use crate::test::d;
-    use crate::test::dsl_book;
     use crate::test::tmpdir;
     use crate::types::Book;
     use crate::types::Commit;
@@ -235,7 +234,7 @@ mod test {
     fn test_save_load_roundtrip() {
         let dir = tmpdir("roundtrip");
         let store = Store::open(&dir);
-        let book = dsl_book(&[]);
+        let book = Book::from_dsl(&[]);
         store.save("book.json", &book).unwrap();
         let loaded: Book = store.load("book.json").unwrap();
         assert_eq!(book, loaded);

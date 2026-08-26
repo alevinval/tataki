@@ -183,7 +183,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::test::dsl_blueprint;
+    use crate::types::Blueprint;
 
     #[test]
     fn test_duration() {
@@ -348,9 +348,9 @@ mod test {
     #[test]
     fn test_roundtrip_blueprint() {
         let suts = [
-            dsl_blueprint("2 NORM ^1d 1h 08:00-12:00"),
-            dsl_blueprint("7 CRIT ^{3,2d} 30min Mon-Fri"),
-            dsl_blueprint("9 HIGH ^1d 2h Mon-Fri 08:00-12:00"),
+            Blueprint::from_dsl("2 NORM ^1d 1h 08:00-12:00"),
+            Blueprint::from_dsl("7 CRIT ^{3,2d} 30min Mon-Fri"),
+            Blueprint::from_dsl("9 HIGH ^1d 2h Mon-Fri 08:00-12:00"),
         ];
         for sut in suts {
             let (id, priority, recurrence, duration, availability) =
