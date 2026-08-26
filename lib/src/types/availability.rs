@@ -20,7 +20,7 @@ pub struct Availability {
 }
 
 impl Availability {
-    const ALL_DAY_HOURS: HourSlot = HourSlot::Range { start: 0, stop: 23 };
+    const ALL_DAY_HOURS: HourSlot = HourSlot { start: 0, stop: 23 };
     const MAX_DAY_SCAN: u64 = 7;
     const MAX_HOUR_SCAN: i64 = 24 * 8;
 
@@ -29,9 +29,7 @@ impl Availability {
     }
 
     const fn start_hour(&self) -> u32 {
-        match self.hours {
-            HourSlot::Fixed { hour } | HourSlot::Range { start: hour, .. } => hour,
-        }
+        self.hours.start
     }
 
     pub const fn workdays(hours: HourSlot) -> Self {
@@ -159,7 +157,7 @@ mod test {
 
     #[test]
     fn test_contains() {
-        let sut = Availability::workdays(HourSlot::Range { start: 8, stop: 17 });
+        let sut = Availability::workdays(HourSlot { start: 8, stop: 17 });
 
         assert!(sut.contains(d(2026, 10, 26, 9, 0, 0)));
         assert!(!sut.contains(d(2026, 10, 24, 9, 0, 0)));
@@ -176,20 +174,20 @@ mod test {
                 WeekSlot::Fixed {
                     day: DayOfWeek::Wed
                 },
-                HourSlot::Range { start: 0, stop: 23 }
+                HourSlot { start: 0, stop: 23 }
             ),
             sut
         );
 
         assert_eq!(
-            Availability::new(WeekSlot::full(), HourSlot::Range { start: 0, stop: 23 }),
+            Availability::new(WeekSlot::full(), HourSlot { start: 0, stop: 23 }),
             Availability::full_week_all_day()
         );
     }
 
     #[test]
     fn test_backward_delta_chrono() {
-        let sut = Availability::workdays(HourSlot::Range { start: 8, stop: 12 });
+        let sut = Availability::workdays(HourSlot { start: 8, stop: 12 });
 
         assert_eq!(
             TimeDelta::hours(1),
@@ -213,7 +211,7 @@ mod test {
 
     #[test]
     fn test_next_window_start_at_or_after() {
-        let sut = Availability::workdays(HourSlot::Range { start: 8, stop: 12 });
+        let sut = Availability::workdays(HourSlot { start: 8, stop: 12 });
 
         assert_eq!(
             d(2026, 6, 22, 9, 0, 0),
@@ -235,13 +233,13 @@ mod test {
 
     #[test]
     fn test_window_end_after() {
-        let sut = Availability::workdays(HourSlot::Range { start: 8, stop: 12 });
+        let sut = Availability::workdays(HourSlot { start: 8, stop: 12 });
         assert_eq!(
             Some(d(2026, 6, 22, 13, 0, 0)),
             sut.window_end_after(d(2026, 6, 22, 9, 30, 0))
         );
 
-        let sut = Availability::new(WeekSlot::full(), HourSlot::Fixed { hour: 8 });
+        let sut = Availability::new(WeekSlot::full(), HourSlot { start: 8, stop: 8 });
         assert_eq!(
             Some(d(2026, 6, 22, 9, 0, 0)),
             sut.window_end_after(d(2026, 6, 22, 8, 30, 0))
@@ -256,7 +254,7 @@ mod test {
 
     #[test]
     fn test_can_fit() {
-        let sut = Availability::workdays(HourSlot::Range { start: 8, stop: 12 });
+        let sut = Availability::workdays(HourSlot { start: 8, stop: 12 });
         assert!(sut.can_fit(d(2026, 6, 22, 11, 0, 0), Duration::hours(2)));
         assert!(!sut.can_fit(d(2026, 6, 22, 12, 30, 0), Duration::hours(1)));
         assert!(!sut.can_fit(d(2026, 6, 20, 10, 0, 0), Duration::hours(1)));
@@ -266,7 +264,7 @@ mod test {
     fn test_display() {
         assert_eq!(
             "08:00-12:00",
-            Availability::new(WeekSlot::full(), HourSlot::Range { start: 8, stop: 12 }).to_string()
+            Availability::new(WeekSlot::full(), HourSlot { start: 8, stop: 12 }).to_string()
         );
         assert_eq!(
             "Mon-Fri",
@@ -274,13 +272,13 @@ mod test {
         );
         assert_eq!(
             "Mon-Fri 08:00-12:00",
-            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }).to_string()
+            Availability::workdays(HourSlot { start: 8, stop: 12 }).to_string()
         );
     }
 
     #[test]
     fn test_serde_roundtrip() {
-        let sut = Availability::workdays(HourSlot::Range { start: 8, stop: 12 });
+        let sut = Availability::workdays(HourSlot { start: 8, stop: 12 });
         let json = serde_json::to_string(&sut).unwrap();
         let back: Availability = serde_json::from_str(&json).unwrap();
         assert_eq!(sut, back);

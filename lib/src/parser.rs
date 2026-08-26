@@ -159,11 +159,14 @@ fn availability(parts: &[&str]) -> Option<Result<Availability, String>> {
 
 fn hour_slot(s: &str) -> Result<HourSlot, String> {
     match s.split_once('-') {
-        Some((start, stop)) => Ok(HourSlot::Range {
+        Some((start, stop)) => Ok(HourSlot {
             start: hour(start)?,
             stop: hour(stop)?,
         }),
-        None => Ok(HourSlot::Fixed { hour: hour(s)? }),
+        None => {
+            let h = hour(s)?;
+            Ok(HourSlot { start: h, stop: h })
+        }
     }
 }
 
@@ -277,9 +280,9 @@ mod test {
 
     #[test]
     fn test_hour_slot() {
-        assert_eq!(Ok(HourSlot::Fixed { hour: 8 }), hour_slot("08:00"));
+        assert_eq!(Ok(HourSlot { start: 8, stop: 8 }), hour_slot("08:00"));
         assert_eq!(
-            Ok(HourSlot::Range { start: 8, stop: 12 }),
+            Ok(HourSlot { start: 8, stop: 12 }),
             hour_slot("08:00-12:00")
         );
         assert!(hour_slot("25:00").is_err());
@@ -309,15 +312,12 @@ mod test {
         assert_eq!(
             Some(Ok(Availability::new(
                 WeekSlot::full(),
-                HourSlot::Fixed { hour: 8 }
+                HourSlot { start: 8, stop: 8 }
             ))),
             availability(&["08:00"])
         );
         assert_eq!(
-            Some(Ok(Availability::workdays(HourSlot::Range {
-                start: 8,
-                stop: 12,
-            }))),
+            Some(Ok(Availability::workdays(HourSlot { start: 8, stop: 12 }))),
             availability(&["Mon-Fri", "08:00-12:00"])
         );
         assert_eq!(
@@ -340,7 +340,7 @@ mod test {
                     spacing: Duration::days(1)
                 },
                 Duration::hours(1),
-                Availability::new(WeekSlot::full(), HourSlot::Range { start: 8, stop: 12 }),
+                Availability::new(WeekSlot::full(), HourSlot { start: 8, stop: 12 }),
             )),
             blueprint("2 NORM ^1d 1h 08:00-12:00")
         );
@@ -352,7 +352,7 @@ mod test {
                     spacing: Duration::days(1)
                 },
                 Duration::hours(1),
-                Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
+                Availability::workdays(HourSlot { start: 8, stop: 12 }),
             )),
             blueprint("2 NORM ^1d 1h Mon-Fri 08:00-12:00")
         );
@@ -428,12 +428,12 @@ mod test {
     #[test]
     fn test_roundtrip_availability() {
         let suts = [
-            Availability::new(WeekSlot::full(), HourSlot::Fixed { hour: 8 }),
-            Availability::new(WeekSlot::full(), HourSlot::Range { start: 8, stop: 12 }),
+            Availability::new(WeekSlot::full(), HourSlot { start: 8, stop: 8 }),
+            Availability::new(WeekSlot::full(), HourSlot { start: 8, stop: 12 }),
             Availability::anytime(WeekSlot::Fixed {
                 day: DayOfWeek::Wed,
             }),
-            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
+            Availability::workdays(HourSlot { start: 8, stop: 12 }),
         ];
         for sut in suts {
             let parts = sut.to_string();

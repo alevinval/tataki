@@ -118,7 +118,7 @@ mod test {
                 count: 3,
                 spacing: Duration::hours(4),
             },
-            Availability::new(WeekSlot::full(), HourSlot::Fixed { hour: 3 }),
+            Availability::new(WeekSlot::full(), HourSlot { start: 3, stop: 3 }),
             None,
         );
 
@@ -139,7 +139,7 @@ mod test {
                 count: 2,
                 spacing: Duration::days(2),
             },
-            Availability::new(WeekSlot::full(), HourSlot::Range { start: 3, stop: 5 }),
+            Availability::new(WeekSlot::full(), HourSlot { start: 3, stop: 5 }),
             None,
         );
 
@@ -181,7 +181,7 @@ mod test {
 
     #[test]
     fn test_next_minimum_ts_snaps_to_next_window_start_after_window_boundary() {
-        let availability = Availability::new(WeekSlot::full(), HourSlot::Fixed { hour: 8 });
+        let availability = Availability::new(WeekSlot::full(), HourSlot { start: 8, stop: 8 });
         let recurrence = Recurrence::Period {
             spacing: Duration::hours(6),
         };
@@ -205,7 +205,7 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::days(1),
             },
-            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
+            Availability::workdays(HourSlot { start: 8, stop: 12 }),
             None,
         );
 
@@ -220,7 +220,7 @@ mod test {
             Recurrence::Period {
                 spacing: Duration::days(1),
             },
-            Availability::workdays(HourSlot::Range { start: 8, stop: 12 }),
+            Availability::workdays(HourSlot { start: 8, stop: 12 }),
             Some(d(2026, 6, 19, 9, 30, 0)),
         );
 
