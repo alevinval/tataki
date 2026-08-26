@@ -32,22 +32,15 @@ impl Journal {
         &self.commits
     }
 
+    pub fn last_commit(&self) -> Option<&Commit> {
+        self.commits.last()
+    }
+
     pub fn last_commit_for(&self, blueprint_id: &str) -> Option<&Commit> {
         self.commits
             .iter()
             .rev()
             .find(|commit| commit.blueprint_id() == blueprint_id)
-    }
-
-    pub fn last_commit(&self) -> Option<&Commit> {
-        self.commits.last()
-    }
-
-    /// Load the journal from the store. Returns an empty journal if no
-    /// commits have been recorded yet.
-    pub fn load(store: &Store) -> Result<Self, StorageError> {
-        let commits: Vec<Commit> = store.load_all(Self::FILE)?;
-        Ok(Self::new(commits))
     }
 
     /// Append a commit: persist it to the store and record it in memory.
@@ -61,6 +54,18 @@ impl Journal {
         self.commits.push(commit);
         Ok(())
     }
+
+    /// Load the journal from the store. Returns an empty journal if no
+    /// commits have been recorded yet.
+    pub fn load(store: &Store) -> Result<Self, StorageError> {
+        let commits: Vec<Commit> = store.load_all(Self::FILE)?;
+        Ok(Self::sorted(commits))
+    }
+
+    fn sorted(mut commits: Vec<Commit>) -> Self {
+        commits.sort_by_key(|commit| commit.committed_at());
+        Self::new(commits)
+    }
 }
 
 #[cfg(test)]
@@ -71,14 +76,10 @@ mod test {
     use crate::test::tmpdir;
 
     #[test]
-    fn test_get_last_commit_for() {
-        let ts = d(2025, 10, 23, 14, 0, 0);
-        let commit = Commit::completed("found".into(), ts);
-        let sut = Journal::new(vec![commit.clone()]);
-
-        assert_eq!(None, sut.last_commit_for("missing"));
-        assert_eq!(Some(&commit), sut.last_commit_for("found"));
-        assert_eq!(sut.last_commit_for("found"), sut.last_commit());
+    fn test_empty_journal() {
+        let sut = Journal::new(vec![]);
+        assert_eq!(None, sut.last_commit());
+        assert_eq!(None, sut.last_commit_for("a"));
     }
 
     #[test]
@@ -96,13 +97,6 @@ mod test {
         assert_eq!(last.committed_at(), t2);
         assert_eq!(sut.last_commit_for("b").unwrap().committed_at(), t1);
         assert_eq!(None, sut.last_commit_for("c"));
-    }
-
-    #[test]
-    fn test_empty_journal() {
-        let sut = Journal::new(vec![]);
-        assert_eq!(None, sut.last_commit());
-        assert_eq!(None, sut.last_commit_for("a"));
     }
 
     #[test]
@@ -133,6 +127,26 @@ mod test {
             Some(&Commit::completed("1".into(), ts)),
             reloaded.last_commit_for("1")
         );
+    }
+
+    #[test]
+    fn test_load_sorts_by_commit_time() {
+        let dir = tmpdir("journal_sort");
+        let store = Store::open(&dir);
+        let early = d(2025, 10, 23, 14, 0, 0);
+        let late = d(2025, 10, 24, 14, 0, 0);
+
+        // Persisted out of order; the load must reorder them.
+        store
+            .append(Journal::FILE, &Commit::postponed("b".into(), late))
+            .unwrap();
+        store
+            .append(Journal::FILE, &Commit::completed("a".into(), early))
+            .unwrap();
+
+        let sut = Journal::load(&store).unwrap();
+        assert_eq!(sut.commits().len(), 2);
+        assert_eq!(sut.last_commit().unwrap().committed_at(), late);
     }
 
     #[test]
