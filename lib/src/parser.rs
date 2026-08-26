@@ -89,57 +89,26 @@ fn duration(s: &str) -> Result<Duration, String> {
 }
 
 fn recurrence(s: &str) -> Result<Recurrence, String> {
-    match s {
-        "once" => Ok(Recurrence::once()),
-        "daily" => Ok(Recurrence::Period {
-            every: Duration::days(1),
-        }),
-        "weekly" => Ok(Recurrence::Period {
-            every: Duration::of(7, TimeUnit::Day),
-        }),
-        "monthly" => Ok(Recurrence::Period {
-            every: Duration::of(1, TimeUnit::Month),
-        }),
-        "yearly" => Ok(Recurrence::Period {
-            every: Duration::of(1, TimeUnit::Year),
-        }),
-        _ => {
-            if let Some(spacing) = s.strip_prefix("every ") {
-                return Ok(Recurrence::Period {
-                    every: duration(spacing)?,
-                });
-            }
-            if let Some(body) = s.strip_prefix('^') {
-                return caret(body);
-            }
-            Err(format!(
-                "invalid recurrence '{s}' (expected once, daily, weekly, monthly, yearly, 'every \
-                 3mo' or '^{{3,2d}}')"
-            ))
-        }
-    }
-}
-
-/// Parses the `Display` form of a recurrence: `^1`, `^{spacing}` or
-/// `^{count,spacing}`.
-fn caret(s: &str) -> Result<Recurrence, String> {
-    if s == "1" {
+    let body = s
+        .strip_prefix('^')
+        .ok_or_else(|| format!("invalid recurrence '{s}' (expected e.g. ^1, ^24h or ^{{5,2d}})"))?;
+    if body == "1" {
         return Ok(Recurrence::once());
     }
-    if let Some(body) = s.strip_prefix('{').and_then(|b| b.strip_suffix('}')) {
-        let (count, spacing) = body.split_once(',').ok_or_else(|| {
-            format!("invalid recurrence '^{{{s}}}' (expected ^{{count,spacing}})")
-        })?;
+    if let Some(inner) = body.strip_prefix('{').and_then(|b| b.strip_suffix('}')) {
+        let (count, spacing) = inner
+            .split_once(',')
+            .ok_or_else(|| format!("invalid recurrence '{s}' (expected ^{{count,spacing}})"))?;
         let count: usize = count
             .parse()
-            .map_err(|_| format!("invalid recurrence '^{{{s}}}' (expected ^{{count,spacing}})"))?;
+            .map_err(|_| format!("invalid recurrence '{s}' (expected ^{{count,spacing}})"))?;
         return Ok(Recurrence::Times {
             count,
             every: duration(spacing)?,
         });
     }
     Ok(Recurrence::Period {
-        every: duration(s)?,
+        every: duration(body)?,
     })
 }
 
@@ -222,44 +191,25 @@ mod test {
 
     #[test]
     fn test_recurrence() {
-        assert_eq!(Ok(Recurrence::once()), recurrence("once"));
+        assert_eq!(Ok(Recurrence::once()), recurrence("^1"));
         assert_eq!(
             Ok(Recurrence::Period {
                 every: Duration::days(1)
             }),
-            recurrence("daily")
+            recurrence("^24h")
         );
         assert_eq!(
             Ok(Recurrence::Period {
                 every: Duration::of(7, TimeUnit::Day)
             }),
-            recurrence("weekly")
+            recurrence("^7d")
         );
-        assert_eq!(
-            Ok(Recurrence::Period {
-                every: Duration::of(1, TimeUnit::Month)
-            }),
-            recurrence("monthly")
-        );
-        assert_eq!(
-            Ok(Recurrence::Period {
-                every: Duration::of(1, TimeUnit::Year)
-            }),
-            recurrence("yearly")
-        );
-        assert_eq!(
-            Ok(Recurrence::Period {
-                every: Duration::of(3, TimeUnit::Month)
-            }),
-            recurrence("every 3mo")
-        );
-        assert_eq!(Ok(Recurrence::once()), recurrence("^1"));
         assert_eq!(
             Ok(Recurrence::Times {
-                count: 3,
+                count: 5,
                 every: Duration::days(2)
             }),
-            recurrence("^{3,2d}")
+            recurrence("^{5,2d}")
         );
         assert_eq!(
             Ok(Recurrence::Period {
@@ -267,7 +217,8 @@ mod test {
             }),
             recurrence("^3y")
         );
-        assert!(recurrence("fortnightly").is_err());
+        assert!(recurrence("once").is_err());
+        assert!(recurrence("1").is_err());
         assert!(recurrence("^{3}").is_err());
         assert!(recurrence("^{abc,2d}").is_err());
     }
