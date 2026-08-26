@@ -60,20 +60,12 @@ impl HourSlot {
         }
     }
 
-    pub fn backward_delta(&self, curr: u32) -> i64 {
-        (curr as i64 - self.start as i64 + 24) % 24
-    }
-
     pub fn matches_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> bool {
         self.matches(ts.hour())
     }
 
     pub fn forward_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
         TimeDelta::hours(self.forward_delta(ts.hour()))
-    }
-
-    pub fn backward_delta_chrono<T: TimeZone>(&self, ts: DateTime<T>) -> TimeDelta {
-        TimeDelta::hours(self.backward_delta(ts.hour()))
     }
 }
 
@@ -115,23 +107,6 @@ mod test {
 
             let sut = HourSlot::fixed(12);
             assert_eq!(22, sut.forward_delta(14));
-        }
-
-        #[test]
-        fn test_backward_delta_chrono() {
-            let sut = HourSlot::fixed(12);
-
-            // Inside range - no backward delta needed
-            let input = d(2025, 10, 23, 12, 0, 0);
-            assert_eq!(TimeDelta::hours(0), sut.backward_delta_chrono(input));
-
-            // Outside range - go back to 12:00 (2 hours)
-            let input = d(2025, 10, 23, 14, 0, 0);
-            assert_eq!(TimeDelta::hours(2), sut.backward_delta_chrono(input));
-
-            // Outside range - go back to yesterday's 12:00 (22 hours)
-            let input = d(2025, 10, 23, 10, 0, 0);
-            assert_eq!(TimeDelta::hours(22), sut.backward_delta_chrono(input));
         }
 
         #[test]
@@ -183,32 +158,6 @@ mod test {
 
             let sut = HourSlot::range(12, 15);
             assert_eq!(18, sut.forward_delta(18));
-        }
-
-        #[test]
-        fn test_backward_delta() {
-            let sut = HourSlot::range(12, 15);
-            assert_eq!(20, sut.backward_delta(8));
-            assert_eq!(0, sut.backward_delta(12));
-            assert_eq!(2, sut.backward_delta(14));
-            assert_eq!(6, sut.backward_delta(18));
-        }
-
-        #[test]
-        fn test_backward_delta_chrono() {
-            let sut = HourSlot::range(12, 15);
-
-            // Inside range - snap back to the range start (12:00)
-            let input = d(2025, 10, 23, 14, 0, 0);
-            assert_eq!(TimeDelta::hours(2), sut.backward_delta_chrono(input));
-
-            // Outside range (before) - go back to yesterday's 12:00 = 22 hours
-            let input = d(2025, 10, 23, 10, 0, 0);
-            assert_eq!(TimeDelta::hours(22), sut.backward_delta_chrono(input));
-
-            // Outside range (after) - go back to 12:00 same day = 6 hours
-            let input = d(2025, 10, 23, 18, 0, 0);
-            assert_eq!(TimeDelta::hours(6), sut.backward_delta_chrono(input));
         }
 
         #[test]
