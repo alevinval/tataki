@@ -1,30 +1,36 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-/// Priority enumeration.
-/// From most to least priority.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
-pub enum Priority {
-    Idle,
-    Norm,
-    High,
-    Crit,
+/// Priority.
+///
+/// A lower `value` means higher priority (`P(0)` > `P(1)` > ...).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Priority {
+    rank: u8,
 }
 
 impl Priority {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Priority::Idle => "IDLE",
-            Priority::Norm => "NORM",
-            Priority::High => "HIGH",
-            Priority::Crit => "CRIT",
-        }
+    /// Construct a priority from its numeric value.
+    pub const fn of(rank: u8) -> Self {
+        Self { rank }
+    }
+}
+
+impl PartialOrd for Priority {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Priority {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other.rank.cmp(&self.rank)
     }
 }
 
 impl std::fmt::Display for Priority {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.as_str()))
+        write!(f, "P{}", self.rank)
     }
 }
 
@@ -35,24 +41,31 @@ mod test {
 
     #[test]
     fn test_priority_ord() {
-        assert!(Priority::Crit > Priority::High);
-        assert!(Priority::High > Priority::Norm);
-        assert!(Priority::Norm > Priority::Idle);
-        assert!(Priority::Idle == Priority::Idle);
+        assert!(Priority::of(0) > Priority::of(1));
+        assert!(Priority::of(1) > Priority::of(2));
+        assert!(Priority::of(2) > Priority::of(3));
+        assert!(Priority::of(3) == Priority::of(3));
     }
 
     #[test]
     fn test_serde_roundtrip() {
         let variants = [
-            Priority::Idle,
-            Priority::Norm,
-            Priority::High,
-            Priority::Crit,
+            Priority::of(0),
+            Priority::of(1),
+            Priority::of(2),
+            Priority::of(3),
         ];
         for sut in variants {
             let json = serde_json::to_string(&sut).unwrap();
             let back: Priority = serde_json::from_str(&json).unwrap();
             assert_eq!(sut, back);
         }
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!(Priority::of(0).to_string(), "P0");
+        assert_eq!(Priority::of(3).to_string(), "P3");
+        assert_eq!(Priority::of(5).to_string(), "P5");
     }
 }

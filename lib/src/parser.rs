@@ -16,7 +16,7 @@ use crate::types::WeekSlot;
 pub fn blueprint(
     s: &str,
 ) -> Result<(String, Priority, Recurrence, Duration, Availability), String> {
-    const EXAMPLE: &str = "1 NORM ^1d 1h Mon-Fri 08:00-12:00";
+    const EXAMPLE: &str = "1 P2 ^1d 1h Mon-Fri 08:00-12:00";
     let err = || format!("invalid blueprint '{s}' (expected e.g. '{EXAMPLE}')");
     let mut parts = s.split_whitespace();
     let id = parts.next().ok_or_else(err)?;
@@ -28,15 +28,14 @@ pub fn blueprint(
 }
 
 fn priority(s: &str) -> Result<Priority, String> {
-    match s.to_lowercase().as_str() {
-        "idle" => Ok(Priority::Idle),
-        "norm" => Ok(Priority::Norm),
-        "high" => Ok(Priority::High),
-        "crit" => Ok(Priority::Crit),
-        _ => Err(format!(
-            "invalid priority '{s}' (expected idle, norm, high or crit)"
-        )),
-    }
+    let lower = s.to_lowercase();
+    let body = lower
+        .strip_prefix('p')
+        .ok_or_else(|| format!("invalid priority '{s}' (expected e.g. P0, P1, P2, P3)"))?;
+    let n: u8 = body
+        .parse()
+        .map_err(|_| format!("invalid priority '{s}' (expected e.g. P0, P1, P2, P3)"))?;
+    Ok(Priority::of(n))
 }
 
 fn day(s: &str) -> Result<DayOfWeek, String> {
@@ -182,10 +181,10 @@ mod test {
 
     #[test]
     fn test_priority() {
-        assert_eq!(Ok(Priority::Idle), priority("idle"));
-        assert_eq!(Ok(Priority::Norm), priority("NORM"));
-        assert_eq!(Ok(Priority::High), priority("high"));
-        assert_eq!(Ok(Priority::Crit), priority("crit"));
+        assert_eq!(Ok(Priority::of(3)), priority("P3"));
+        assert_eq!(Ok(Priority::of(2)), priority("P2"));
+        assert_eq!(Ok(Priority::of(1)), priority("P1"));
+        assert_eq!(Ok(Priority::of(0)), priority("P0"));
         assert!(priority("urgent").is_err());
     }
 
@@ -264,39 +263,39 @@ mod test {
         assert_eq!(
             Ok((
                 "2".to_string(),
-                Priority::Norm,
+                Priority::of(2),
                 Recurrence::Period {
                     every: Duration::days(1)
                 },
                 Duration::hours(1),
                 Availability::new(WeekSlot::full(), HourSlot::range(8, 12)),
             )),
-            blueprint("2 NORM ^1d 1h 08:00-12:00")
+            blueprint("2 P2 ^1d 1h 08:00-12:00")
         );
         assert_eq!(
             Ok((
                 "2".to_string(),
-                Priority::Norm,
+                Priority::of(2),
                 Recurrence::Period {
                     every: Duration::days(1)
                 },
                 Duration::hours(1),
                 Availability::workdays(HourSlot::range(8, 12)),
             )),
-            blueprint("2 NORM ^1d 1h Mon-Fri 08:00-12:00")
+            blueprint("2 P2 ^1d 1h Mon-Fri 08:00-12:00")
         );
         assert!(blueprint("").is_err());
-        assert!(blueprint("2 NORM ^1d 1h").is_err());
-        assert!(blueprint("2 NORM ^1d 1h 08:00-12:00 extra").is_err());
+        assert!(blueprint("2 P2 ^1d 1h").is_err());
+        assert!(blueprint("2 P2 ^1d 1h 08:00-12:00 extra").is_err());
         assert!(blueprint("2 URGENT ^1d 1h 08:00-12:00").is_err());
     }
 
     #[test]
     fn test_roundtrip_blueprint() {
         let suts = [
-            Blueprint::from_dsl("2 NORM ^1d 1h 08:00-12:00"),
-            Blueprint::from_dsl("7 CRIT ^{3,2d} 30m Mon-Fri"),
-            Blueprint::from_dsl("9 HIGH ^1d 2h Mon-Fri 08:00-12:00"),
+            Blueprint::from_dsl("2 P2 ^1d 1h 08:00-12:00"),
+            Blueprint::from_dsl("7 P0 ^{3,2d} 30m Mon-Fri"),
+            Blueprint::from_dsl("9 P1 ^1d 2h Mon-Fri 08:00-12:00"),
         ];
         for sut in suts {
             let (id, priority, recurrence, duration, availability) =
@@ -327,10 +326,10 @@ mod test {
     #[test]
     fn test_roundtrip_priority() {
         let suts = [
-            Priority::Idle,
-            Priority::Norm,
-            Priority::High,
-            Priority::Crit,
+            Priority::of(3),
+            Priority::of(2),
+            Priority::of(1),
+            Priority::of(0),
         ];
         for sut in suts {
             assert_eq!(Ok(sut), priority(&sut.to_string()));

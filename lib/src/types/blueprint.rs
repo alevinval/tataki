@@ -111,7 +111,7 @@ mod test {
             "1".to_string(),
             "Clean VAC filters".to_string(),
             Duration::hours(1),
-            Priority::Idle,
+            Priority::of(3),
             Recurrence::Period {
                 every: Duration::of(1, TimeUnit::Year),
             },
@@ -122,31 +122,31 @@ mod test {
     #[test]
     fn test_display() {
         let sut = get_example_blueprint();
-        assert_eq!("1 IDLE ^1y 1h 10:00-13:00", sut.to_string());
+        assert_eq!("1 P3 ^1y 1h 10:00-13:00", sut.to_string());
 
         let sut = Blueprint::new(
             "1".to_string(),
             "Clean VAC filters".to_string(),
             Duration::hours(1),
-            Priority::Crit,
+            Priority::of(0),
             Recurrence::Period {
                 every: Duration::of(3, TimeUnit::Month),
             },
             Availability::anytime(WeekSlot::workdays()),
         );
-        assert_eq!("1 CRIT ^3mo 1h Mon-Fri", sut.to_string());
+        assert_eq!("1 P0 ^3mo 1h Mon-Fri", sut.to_string());
 
         let sut = Blueprint::new(
             "1".to_string(),
             "Clean VAC filters".to_string(),
             Duration::hours(1),
-            Priority::Crit,
+            Priority::of(0),
             Recurrence::Period {
                 every: Duration::of(3, TimeUnit::Month),
             },
             Availability::workdays(HourSlot::range(8, 12)),
         );
-        assert_eq!("1 CRIT ^3mo 1h Mon-Fri 08:00-12:00", sut.to_string());
+        assert_eq!("1 P0 ^3mo 1h Mon-Fri 08:00-12:00", sut.to_string());
     }
 
     #[test]
@@ -160,7 +160,7 @@ mod test {
             "1".to_string(),
             "Clean VAC filters".to_string(),
             Duration::hours(1),
-            Priority::Crit,
+            Priority::of(0),
             Recurrence::Period {
                 every: Duration::of(3, TimeUnit::Month),
             },

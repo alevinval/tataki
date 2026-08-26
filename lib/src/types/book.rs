@@ -65,7 +65,7 @@ mod test {
     fn test_load_save_roundtrip() {
         let dir = tmpdir("book_load_save");
         let store = Store::open(&dir);
-        let sut = Book::from_dsl(&["1 CRIT ^1 1h 08:00"]);
+        let sut = Book::from_dsl(&["1 P0 ^1 1h 08:00"]);
         sut.save(&store).unwrap();
         assert_eq!(sut, Book::load(&store).unwrap());
     }
@@ -74,7 +74,7 @@ mod test {
     fn test_load_sorts_blueprints() {
         let dir = tmpdir("book_load_sorts");
         let store = Store::open(&dir);
-        let expected = Book::from_dsl(&["1 CRIT ^1 1h 08:00", "2 NORM ^1d 1h Mon-Fri"]);
+        let expected = Book::from_dsl(&["1 P0 ^1 1h 08:00", "2 P2 ^1d 1h Mon-Fri"]);
         let mut unsorted = expected.clone();
         unsorted.blueprints.reverse();
         store.save(Book::FILE, &unsorted).unwrap();
@@ -83,7 +83,7 @@ mod test {
 
     #[test]
     fn test_serde_roundtrip() {
-        let sut = Book::from_dsl(&["1 CRIT ^1 1h 08:00", "2 NORM ^1d 1h Mon-Fri"]);
+        let sut = Book::from_dsl(&["1 P0 ^1 1h 08:00", "2 P2 ^1d 1h Mon-Fri"]);
         let json = serde_json::to_string(&sut).unwrap();
         let back: Book = serde_json::from_str(&json).unwrap();
         assert_eq!(sut, back);

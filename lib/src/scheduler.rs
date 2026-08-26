@@ -260,12 +260,12 @@ mod test {
 
     #[test]
     fn test_schedule() {
-        let book = Book::from_dsl(&["1 CRIT ^1d 1h 08:00", "2 NORM ^1d 1h 08:00-12:00"]);
+        let book = Book::from_dsl(&["1 P0 ^1d 1h 08:00", "2 P2 ^1d 1h 08:00-12:00"]);
 
         let expected = "
 
-1 CRIT ^1d 1h 08:00
-2 NORM ^1d 1h 08:00-12:00
+1 P0 ^1d 1h 08:00
+2 P2 ^1d 1h 08:00-12:00
 ";
         assert_eq!(expected.trim(), book.to_string().trim());
 
@@ -303,7 +303,7 @@ mod test {
 
     #[test]
     fn test_schedule_hourly_task_one_day() {
-        let book = Book::from_dsl(&["id-1 NORM ^1h 9000s 00:00-23:00"]);
+        let book = Book::from_dsl(&["id-1 P2 ^1h 9000s 00:00-23:00"]);
         let journal = Journal::new(vec![Commit::completed(
             "id-1".into(),
             d(2026, 6, 15, 1, 30, 0),
@@ -328,7 +328,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_availability_only_blueprint() {
-        let book = Book::from_dsl(&["1 CRIT ^1d 1h Mon-Fri 08:00-12:00"]);
+        let book = Book::from_dsl(&["1 P0 ^1d 1h Mon-Fri 08:00-12:00"]);
 
         let from = d(2026, 6, 20, 10, 0, 0);
         let plan =
@@ -344,8 +344,8 @@ id-1 2026-06-15T22:30:00+02:00";
     #[test]
     fn test_schedule_skips_candidate_that_does_not_fit_window() {
         let book = Book::from_dsl(&[
-            "1 CRIT ^1 90m Mon-Fri 08:00-10:00",
-            "2 NORM ^1 2h Mon-Fri 08:00-10:00",
+            "1 P0 ^1 90m Mon-Fri 08:00-10:00",
+            "2 P2 ^1 2h Mon-Fri 08:00-10:00",
         ]);
 
         let from = d(2026, 6, 22, 8, 0, 0);
@@ -361,7 +361,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_drops_task_that_can_never_fit_any_window() {
-        let book = Book::from_dsl(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
+        let book = Book::from_dsl(&["1 P0 ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 8, 0, 0);
         let plan =
@@ -372,7 +372,7 @@ id-1 2026-06-15T22:30:00+02:00";
 
     #[test]
     fn test_schedule_warns_when_due_task_can_never_fit_any_window() {
-        let book = Book::from_dsl(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
+        let book = Book::from_dsl(&["1 P0 ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 8, 0, 0);
         let report = Scheduler::new(book, Journal::new(vec![]))
@@ -382,14 +382,14 @@ id-1 2026-06-15T22:30:00+02:00";
         assert_eq!(1, report.warnings().len());
         assert_eq!("1", report.warnings()[0].blueprint().id());
         assert_eq!(
-            "(!) 1 CRIT ^1 4h Mon-Fri 08:00-10:00",
+            "(!) 1 P0 ^1 4h Mon-Fri 08:00-10:00",
             report.warnings()[0].to_string()
         );
     }
 
     #[test]
     fn test_schedule_does_not_warn_for_impossible_task_outside_range() {
-        let book = Book::from_dsl(&["1 CRIT ^1 4h Mon-Fri 08:00-10:00"]);
+        let book = Book::from_dsl(&["1 P0 ^1 4h Mon-Fri 08:00-10:00"]);
 
         let from = d(2026, 6, 22, 0, 0, 0);
         let report = Scheduler::new(book, Journal::new(vec![]))
@@ -402,8 +402,8 @@ id-1 2026-06-15T22:30:00+02:00";
     #[test]
     fn test_schedule_warns_for_every_conflicted_occurrence() {
         let book = Book::from_dsl(&[
-            "2 HIGH ^1d 30m Mon-Fri 10:00-11:00",
-            "1 NORM ^1d 4h 08:00-12:00",
+            "2 P1 ^1d 30m Mon-Fri 10:00-11:00",
+            "1 P2 ^1d 4h 08:00-12:00",
         ]);
 
         let from = d(2026, 8, 25, 0, 0, 0);
@@ -415,16 +415,16 @@ id-1 2026-06-15T22:30:00+02:00";
             report
                 .warnings()
                 .iter()
-                .all(|warning| warning.to_string() == "(!) 2 HIGH ^1d 30m Mon-Fri 10:00-11:00")
+                .all(|warning| warning.to_string() == "(!) 2 P1 ^1d 30m Mon-Fri 10:00-11:00")
         );
 
         let rendered: Vec<_> = report.items().iter().map(ToString::to_string).collect();
         assert_eq!(
             vec![
                 "1 2026-08-25T08:00:00+02:00",
-                "(!) 2 HIGH ^1d 30m Mon-Fri 10:00-11:00",
+                "(!) 2 P1 ^1d 30m Mon-Fri 10:00-11:00",
                 "1 2026-08-26T08:00:00+02:00",
-                "(!) 2 HIGH ^1d 30m Mon-Fri 10:00-11:00",
+                "(!) 2 P1 ^1d 30m Mon-Fri 10:00-11:00",
             ],
             rendered[..4]
         );
