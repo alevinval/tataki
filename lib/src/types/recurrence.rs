@@ -25,6 +25,16 @@ pub enum Recurrence {
 }
 
 impl Recurrence {
+    /// Creates a recurrence that occurs exactly once.
+    ///
+    /// Equivalent to [`Recurrence::Times`] with a count of 1 and zero spacing.
+    pub const fn once() -> Self {
+        Recurrence::Times {
+            count: 1,
+            every: Duration::zero(),
+        }
+    }
+
     /// Returns the number of remaining occurrences.
     ///
     /// Returns `Some(n)` for a finite number, or `None` for infinite
@@ -85,6 +95,19 @@ mod test {
             every: Duration::of(3, TimeUnit::Year),
         };
         assert_eq!("^3y", sut.to_string());
+    }
+
+    #[test]
+    fn test_once() {
+        let sut = Recurrence::once();
+        assert_eq!(
+            sut,
+            Recurrence::Times {
+                count: 1,
+                every: Duration::zero(),
+            }
+        );
+        assert_eq!(Some(1), sut.remaining());
     }
 
     #[test]

@@ -32,6 +32,11 @@ impl Duration {
         Self::of(amount, TimeUnit::Minute)
     }
 
+    /// Creates a zero Duration.
+    pub const fn zero() -> Self {
+        Self::of(0, TimeUnit::Second)
+    }
+
     /// Returns a [`chrono::TimeDelta`] reflecting the duration.
     pub const fn timedelta(&self) -> TimeDelta {
         TimeDelta::seconds(self.seconds() as i64)
