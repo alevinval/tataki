@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::types::TimeUnit;
 
 /// Represents a fixed amount of time in a given unit (e.g. hours, minutes).
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Duration {
     amount: u64,
     unit: TimeUnit,
@@ -52,9 +52,17 @@ impl std::ops::Add for Duration {
     type Output = Duration;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Duration::of(rhs.seconds() + self.seconds(), TimeUnit::Second)
+        Duration::of(self.seconds() + rhs.seconds(), TimeUnit::Second)
     }
 }
+
+impl PartialEq for Duration {
+    fn eq(&self, other: &Self) -> bool {
+        self.seconds() == other.seconds()
+    }
+}
+
+impl Eq for Duration {}
 
 #[cfg(test)]
 mod test {
@@ -80,6 +88,15 @@ mod test {
 
         let d = Duration::of(123, TimeUnit::Year);
         assert_eq!(d.timedelta(), TimeDelta::days(365 * 123));
+    }
+
+    #[test]
+    fn test_semantic_eq() {
+        assert_eq!(Duration::hours(1), Duration::of(3600, TimeUnit::Second));
+        assert_eq!(
+            Duration::hours(1) + Duration::minutes(0),
+            Duration::hours(1)
+        );
     }
 
     #[test]
