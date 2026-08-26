@@ -7,7 +7,7 @@ use serde::Serialize;
 
 /// Models the days of the week.
 ///
-/// The natural ordering follows the alphabetical order based on variant names.
+/// The natural ordering follows the calendar order (Mon → Sun).
 #[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub enum DayOfWeek {
     Mon = 0,
@@ -80,14 +80,7 @@ impl Sub<u32> for DayOfWeek {
     type Output = DayOfWeek;
 
     fn sub(self, rhs: u32) -> Self::Output {
-        let lhs = self as u32;
-        let diff = lhs.abs_diff(rhs) % 7;
-        (if diff > lhs {
-            7 - diff - lhs
-        } else {
-            lhs - diff
-        })
-        .into()
+        self + ((7 - rhs % 7) % 7)
     }
 }
 
@@ -134,6 +127,9 @@ mod test {
         assert_eq!(DayOfWeek::Fri, DayOfWeek::Mon - 3);
         assert_eq!(DayOfWeek::Mon, DayOfWeek::Mon - 7);
         assert_eq!(DayOfWeek::Sun, DayOfWeek::Mon - 8);
+        assert_eq!(DayOfWeek::Thu, DayOfWeek::Sat - 2);
+        assert_eq!(DayOfWeek::Thu, DayOfWeek::Tue - 5);
+        assert_eq!(DayOfWeek::Wed, DayOfWeek::Thu - 8);
     }
 
     #[test]
