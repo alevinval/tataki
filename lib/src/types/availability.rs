@@ -29,7 +29,7 @@ impl Availability {
     }
 
     const fn start_hour(&self) -> u32 {
-        self.hours.start()
+        self.hours.from()
     }
 
     pub const fn workdays(hours: HourSlot) -> Self {

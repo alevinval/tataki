@@ -6,64 +6,61 @@ use crate::types::days::DayOfWeek;
 /// Represents the day-of-week dimension of an
 /// [`Availability`](crate::types::Availability).
 ///
-/// A value describes an inclusive range of days `[start, stop]`.
-/// A single day is represented as `WeekSlot { start: d, stop: d }`.
+/// A value describes an inclusive range of days `[from, to]`.
+/// A single day is represented as `WeekSlot { from: d, to: d }`.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct WeekSlot {
     /// Inclusive start day
-    start: DayOfWeek,
+    from: DayOfWeek,
     /// Inclusive end day
-    stop: DayOfWeek,
+    to: DayOfWeek,
 }
 
 impl WeekSlot {
     pub const fn fixed(day: DayOfWeek) -> Self {
-        Self {
-            start: day,
-            stop: day,
-        }
+        Self { from: day, to: day }
     }
 
-    pub const fn range(start: DayOfWeek, stop: DayOfWeek) -> Self {
-        Self { start, stop }
+    pub const fn range(from: DayOfWeek, to: DayOfWeek) -> Self {
+        Self { from, to }
     }
 
     pub const fn workdays() -> Self {
         Self {
-            start: DayOfWeek::Mon,
-            stop: DayOfWeek::Fri,
+            from: DayOfWeek::Mon,
+            to: DayOfWeek::Fri,
         }
     }
 
     pub const fn weekend() -> Self {
         Self {
-            start: DayOfWeek::Sat,
-            stop: DayOfWeek::Sun,
+            from: DayOfWeek::Sat,
+            to: DayOfWeek::Sun,
         }
     }
 
     pub const fn full() -> Self {
         Self {
-            start: DayOfWeek::Mon,
-            stop: DayOfWeek::Sun,
+            from: DayOfWeek::Mon,
+            to: DayOfWeek::Sun,
         }
     }
 
     pub fn matches(&self, day: DayOfWeek) -> bool {
-        if self.start <= self.stop {
-            (self.start..=self.stop).contains(&day)
+        if self.from <= self.to {
+            (self.from..=self.to).contains(&day)
         } else {
-            day >= self.start || day <= self.stop
+            day >= self.from || day <= self.to
         }
     }
 }
 
 impl std::fmt::Display for WeekSlot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.start == self.stop {
-            write!(f, "{}", self.start)
+        if self.from == self.to {
+            write!(f, "{}", self.from)
         } else {
-            write!(f, "{}-{}", self.start, self.stop)
+            write!(f, "{}-{}", self.from, self.to)
         }
     }
 }

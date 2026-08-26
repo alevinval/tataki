@@ -4,57 +4,57 @@ use serde::Serialize;
 /// Represents the hour-of-day dimension of an
 /// [`Availability`](crate::types::Availability).
 ///
-/// A value describes an inclusive range of hours `[start, end]`.
-/// A single hour is represented as `HourSlot { start: h, end: h }`.
+/// A value describes an inclusive range of hours `[from, to]`.
+/// A single hour is represented as `HourSlot { from: h, to: h }`.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub struct HourSlot {
     /// Inclusive start hour
-    start: u32,
+    from: u32,
     /// Inclusive end hour
-    stop: u32,
+    to: u32,
 }
 
 impl HourSlot {
     /// Constructs a slot for a single hour.
     pub const fn fixed(hour: u32) -> Self {
         Self {
-            start: hour,
-            stop: hour,
+            from: hour,
+            to: hour,
         }
     }
 
-    /// Constructs a slot for an inclusive range of hours `[start, stop]`.
-    pub const fn range(start: u32, stop: u32) -> Self {
-        Self { start, stop }
+    /// Constructs a slot for an inclusive range of hours `[from, to]`.
+    pub const fn range(from: u32, to: u32) -> Self {
+        Self { from, to }
     }
 
     /// Inclusive start hour.
-    pub const fn start(&self) -> u32 {
-        self.start
+    pub const fn from(&self) -> u32 {
+        self.from
     }
 
     /// Inclusive end hour.
-    pub const fn stop(&self) -> u32 {
-        self.stop
+    pub const fn to(&self) -> u32 {
+        self.to
     }
 
     pub fn matches(&self, hour: u32) -> bool {
         debug_assert!(hour < 24, "hour must be <24, instead it was {hour}");
 
-        if self.start <= self.stop {
-            (self.start..=self.stop).contains(&hour)
+        if self.from <= self.to {
+            (self.from..=self.to).contains(&hour)
         } else {
-            hour >= self.start || hour <= self.stop
+            hour >= self.from || hour <= self.to
         }
     }
 }
 
 impl std::fmt::Display for HourSlot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.start == self.stop {
-            write!(f, "{:02}:00", self.start)
+        if self.from == self.to {
+            write!(f, "{:02}:00", self.from)
         } else {
-            write!(f, "{:02}:00-{:02}:00", self.start, self.stop)
+            write!(f, "{:02}:00-{:02}:00", self.from, self.to)
         }
     }
 }
