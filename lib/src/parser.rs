@@ -64,12 +64,12 @@ fn duration(s: &str) -> Result<Duration, String> {
         if let Some(n) = s.strip_suffix(unit.as_str()) {
             let amount: u64 = n
                 .parse()
-                .map_err(|_| format!("invalid duration '{s}' (expected e.g. 30min, 1h, 1d)"))?;
+                .map_err(|_| format!("invalid duration '{s}' (expected e.g. 30m, 1h, 1d)"))?;
             return Ok(Duration::of(amount, unit));
         }
     }
     Err(format!(
-        "invalid duration '{s}' (expected e.g. 30min, 1h, 1d)"
+        "invalid duration '{s}' (expected e.g. 30m, 1h, 1d)"
     ))
 }
 
@@ -188,7 +188,7 @@ mod test {
     #[test]
     fn test_duration() {
         assert_eq!(Ok(Duration::of(5, TimeUnit::Second)), duration("5s"));
-        assert_eq!(Ok(Duration::minutes(30)), duration("30min"));
+        assert_eq!(Ok(Duration::minutes(30)), duration("30m"));
         assert_eq!(Ok(Duration::hours(1)), duration("1h"));
         assert_eq!(Ok(Duration::days(1)), duration("1d"));
         assert_eq!(Ok(Duration::of(3, TimeUnit::Month)), duration("3mo"));
@@ -349,7 +349,7 @@ mod test {
     fn test_roundtrip_blueprint() {
         let suts = [
             Blueprint::from_dsl("2 NORM ^1d 1h 08:00-12:00"),
-            Blueprint::from_dsl("7 CRIT ^{3,2d} 30min Mon-Fri"),
+            Blueprint::from_dsl("7 CRIT ^{3,2d} 30m Mon-Fri"),
             Blueprint::from_dsl("9 HIGH ^1d 2h Mon-Fri 08:00-12:00"),
         ];
         for sut in suts {

@@ -38,7 +38,7 @@ Availability formats:
 
 Examples:
   tt-cli add "1 NORM daily 1h 08:00-12:00" "Deep work"
-  tt-cli add "2 HIGH weekly 30min Mon-Fri" "Team standup"
+  tt-cli add "2 HIGH weekly 30m Mon-Fri" "Team standup"
   tt-cli add "3 CRIT ^1d 2h Mon-Fri 08:00-12:00" "Focus block""#
     )]
     Add {

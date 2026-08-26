@@ -25,7 +25,7 @@ impl TimeUnit {
     pub const fn as_str(&self) -> &'static str {
         match self {
             TimeUnit::Second => "s",
-            TimeUnit::Minute => "min",
+            TimeUnit::Minute => "m",
             TimeUnit::Hour => "h",
             TimeUnit::Day => "d",
             TimeUnit::Month => "mo",

@@ -344,7 +344,7 @@ id-1 2026-06-15T22:30:00+02:00";
     #[test]
     fn test_schedule_skips_candidate_that_does_not_fit_window() {
         let book = Book::from_dsl(&[
-            "1 CRIT ^1 90min Mon-Fri 08:00-10:00",
+            "1 CRIT ^1 90m Mon-Fri 08:00-10:00",
             "2 NORM ^1 2h Mon-Fri 08:00-10:00",
         ]);
 
@@ -402,7 +402,7 @@ id-1 2026-06-15T22:30:00+02:00";
     #[test]
     fn test_schedule_warns_for_every_conflicted_occurrence() {
         let book = Book::from_dsl(&[
-            "2 HIGH ^1d 30min Mon-Fri 10:00-11:00",
+            "2 HIGH ^1d 30m Mon-Fri 10:00-11:00",
             "1 NORM ^1d 4h 08:00-12:00",
         ]);
 
@@ -415,16 +415,16 @@ id-1 2026-06-15T22:30:00+02:00";
             report
                 .warnings()
                 .iter()
-                .all(|warning| warning.to_string() == "(!) 2 HIGH ^1d 30min Mon-Fri 10:00-11:00")
+                .all(|warning| warning.to_string() == "(!) 2 HIGH ^1d 30m Mon-Fri 10:00-11:00")
         );
 
         let rendered: Vec<_> = report.items().iter().map(ToString::to_string).collect();
         assert_eq!(
             vec![
                 "1 2026-08-25T08:00:00+02:00",
-                "(!) 2 HIGH ^1d 30min Mon-Fri 10:00-11:00",
+                "(!) 2 HIGH ^1d 30m Mon-Fri 10:00-11:00",
                 "1 2026-08-26T08:00:00+02:00",
-                "(!) 2 HIGH ^1d 30min Mon-Fri 10:00-11:00",
+                "(!) 2 HIGH ^1d 30m Mon-Fri 10:00-11:00",
             ],
             rendered[..4]
         );
