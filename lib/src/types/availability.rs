@@ -166,14 +166,10 @@ mod test {
 
     #[test]
     fn test_constructors() {
-        let sut = Availability::anytime(WeekSlot::Fixed {
-            day: DayOfWeek::Wed,
-        });
+        let sut = Availability::anytime(WeekSlot::fixed(DayOfWeek::Wed));
         assert_eq!(
             Availability::new(
-                WeekSlot::Fixed {
-                    day: DayOfWeek::Wed
-                },
+                WeekSlot::fixed(DayOfWeek::Wed),
                 HourSlot { start: 0, stop: 23 }
             ),
             sut

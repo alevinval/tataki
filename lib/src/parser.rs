@@ -172,11 +172,8 @@ fn hour_slot(s: &str) -> Result<HourSlot, String> {
 
 fn week_slot(s: &str) -> Result<WeekSlot, String> {
     match s.split_once('-') {
-        Some((start, stop)) => Ok(WeekSlot::Range {
-            start: day(start)?,
-            stop: day(stop)?,
-        }),
-        None => Ok(WeekSlot::Fixed { day: day(s)? }),
+        Some((start, stop)) => Ok(WeekSlot::range(day(start)?, day(stop)?)),
+        None => Ok(WeekSlot::fixed(day(s)?)),
     }
 }
 
@@ -291,17 +288,9 @@ mod test {
 
     #[test]
     fn test_week_slot() {
+        assert_eq!(Ok(WeekSlot::fixed(DayOfWeek::Wed)), week_slot("wed"));
         assert_eq!(
-            Ok(WeekSlot::Fixed {
-                day: DayOfWeek::Wed
-            }),
-            week_slot("wed")
-        );
-        assert_eq!(
-            Ok(WeekSlot::Range {
-                start: DayOfWeek::Mon,
-                stop: DayOfWeek::Fri,
-            }),
+            Ok(WeekSlot::range(DayOfWeek::Mon, DayOfWeek::Fri)),
             week_slot("Mon-Fri")
         );
         assert!(week_slot("foo").is_err());
@@ -321,9 +310,7 @@ mod test {
             availability(&["Mon-Fri", "08:00-12:00"])
         );
         assert_eq!(
-            Some(Ok(Availability::anytime(WeekSlot::Fixed {
-                day: DayOfWeek::Wed,
-            }))),
+            Some(Ok(Availability::anytime(WeekSlot::fixed(DayOfWeek::Wed)))),
             availability(&["wed"])
         );
         assert_eq!(None, availability(&[]));
@@ -430,9 +417,7 @@ mod test {
         let suts = [
             Availability::new(WeekSlot::full(), HourSlot { start: 8, stop: 8 }),
             Availability::new(WeekSlot::full(), HourSlot { start: 8, stop: 12 }),
-            Availability::anytime(WeekSlot::Fixed {
-                day: DayOfWeek::Wed,
-            }),
+            Availability::anytime(WeekSlot::fixed(DayOfWeek::Wed)),
             Availability::workdays(HourSlot { start: 8, stop: 12 }),
         ];
         for sut in suts {
