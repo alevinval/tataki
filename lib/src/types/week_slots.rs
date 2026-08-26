@@ -80,19 +80,6 @@ mod test {
             assert!(!sut.matches(DayOfWeek::Tue));
             assert!(!sut.matches(DayOfWeek::Thu));
         }
-
-        #[test]
-        fn test_serde_roundtrip() {
-            let suts = [
-                WeekSlot::fixed(DayOfWeek::Mon),
-                WeekSlot::fixed(DayOfWeek::Sun),
-            ];
-            for sut in suts {
-                let json = serde_json::to_string(&sut).unwrap();
-                let back: WeekSlot = serde_json::from_str(&json).unwrap();
-                assert_eq!(sut, back);
-            }
-        }
     }
 
     mod range {
@@ -109,9 +96,26 @@ mod test {
             assert!(!sut.matches(DayOfWeek::Thu));
             assert!(!sut.matches(DayOfWeek::Tue));
         }
+    }
+
+    mod serde {
+        use super::*;
 
         #[test]
-        fn test_serde_roundtrip() {
+        fn test_fixed() {
+            let suts = [
+                WeekSlot::fixed(DayOfWeek::Mon),
+                WeekSlot::fixed(DayOfWeek::Sun),
+            ];
+            for sut in suts {
+                let json = serde_json::to_string(&sut).unwrap();
+                let back: WeekSlot = serde_json::from_str(&json).unwrap();
+                assert_eq!(sut, back);
+            }
+        }
+
+        #[test]
+        fn test_range() {
             let suts = [
                 WeekSlot::range(DayOfWeek::Mon, DayOfWeek::Fri),
                 WeekSlot::range(DayOfWeek::Fri, DayOfWeek::Mon),

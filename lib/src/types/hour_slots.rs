@@ -74,14 +74,6 @@ mod test {
             assert!(!sut.matches(11));
             assert!(!sut.matches(13));
         }
-
-        #[test]
-        fn test_serde_roundtrip() {
-            let sut = HourSlot::fixed(9);
-            let json = serde_json::to_string(&sut).unwrap();
-            let back: HourSlot = serde_json::from_str(&json).unwrap();
-            assert_eq!(sut, back);
-        }
     }
 
     mod range {
@@ -98,9 +90,21 @@ mod test {
             assert!(!sut.matches(4));
             assert!(!sut.matches(7));
         }
+    }
+
+    mod serde {
+        use super::*;
 
         #[test]
-        fn test_serde_roundtrip() {
+        fn test_fixed() {
+            let sut = HourSlot::fixed(9);
+            let json = serde_json::to_string(&sut).unwrap();
+            let back: HourSlot = serde_json::from_str(&json).unwrap();
+            assert_eq!(sut, back);
+        }
+
+        #[test]
+        fn test_range() {
             let suts = [HourSlot::range(8, 12), HourSlot::range(20, 2)];
             for sut in suts {
                 let json = serde_json::to_string(&sut).unwrap();
