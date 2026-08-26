@@ -19,9 +19,9 @@ pub enum DayOfWeek {
     Sun = 6,
 }
 
-impl DayOfWeek {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
+impl std::fmt::Display for DayOfWeek {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
             DayOfWeek::Mon => "Mon",
             DayOfWeek::Tue => "Tue",
             DayOfWeek::Wed => "Wed",
@@ -29,13 +29,8 @@ impl DayOfWeek {
             DayOfWeek::Fri => "Fri",
             DayOfWeek::Sat => "Sat",
             DayOfWeek::Sun => "Sun",
-        }
-    }
-}
-
-impl std::fmt::Display for DayOfWeek {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
+        };
+        f.write_str(s)
     }
 }
 

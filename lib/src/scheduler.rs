@@ -290,7 +290,7 @@ mod test {
 1 2026-10-29T08:00:00+01:00
 2 2026-10-29T09:00:00+01:00";
 
-        assert_eq!(expected.trim(), plan.as_str().trim());
+        assert_eq!(expected.trim(), plan.to_string().trim());
 
         let journal = Journal::new(vec![
             Commit::completed("1".into(), d(2026, 10, 22, 9, 0, 0)),
@@ -298,7 +298,7 @@ mod test {
         ]);
 
         let plan = Scheduler::new(book, journal).schedule(from, from + TimeDelta::days(7));
-        assert_eq!(expected.trim(), plan.as_str().trim());
+        assert_eq!(expected.trim(), plan.to_string().trim());
     }
 
     #[test]
@@ -323,7 +323,7 @@ id-1 2026-06-15T17:30:00+02:00
 id-1 2026-06-15T20:00:00+02:00
 id-1 2026-06-15T22:30:00+02:00";
 
-        assert_eq!(expected.trim(), plan.as_str().trim());
+        assert_eq!(expected.trim(), plan.to_string().trim());
     }
 
     #[test]
@@ -338,7 +338,7 @@ id-1 2026-06-15T22:30:00+02:00";
 1 2026-06-22T08:00:00+02:00
 1 2026-06-23T08:00:00+02:00";
 
-        assert_eq!(expected.trim(), plan.as_str().trim());
+        assert_eq!(expected.trim(), plan.to_string().trim());
     }
 
     #[test]
@@ -356,7 +356,7 @@ id-1 2026-06-15T22:30:00+02:00";
 1 2026-06-22T08:00:00+02:00
 2 2026-06-23T08:00:00+02:00";
 
-        assert_eq!(expected.trim(), plan.as_str().trim());
+        assert_eq!(expected.trim(), plan.to_string().trim());
     }
 
     #[test]
@@ -367,7 +367,7 @@ id-1 2026-06-15T22:30:00+02:00";
         let plan =
             Scheduler::new(book, Journal::new(vec![])).schedule(from, from + TimeDelta::days(2));
 
-        assert_eq!("", plan.as_str().trim());
+        assert_eq!("", plan.to_string().trim());
     }
 
     #[test]
@@ -378,7 +378,7 @@ id-1 2026-06-15T22:30:00+02:00";
         let report = Scheduler::new(book, Journal::new(vec![]))
             .schedule_with_warnings(from, from + TimeDelta::days(2));
 
-        assert_eq!("", report.plan().as_str().trim());
+        assert_eq!("", report.plan().to_string().trim());
         assert_eq!(1, report.warnings().len());
         assert_eq!("1", report.warnings()[0].blueprint().id());
         assert_eq!(
@@ -395,7 +395,7 @@ id-1 2026-06-15T22:30:00+02:00";
         let report = Scheduler::new(book, Journal::new(vec![]))
             .schedule_with_warnings(from, d(2026, 6, 22, 7, 0, 0));
 
-        assert_eq!("", report.plan().as_str().trim());
+        assert_eq!("", report.plan().to_string().trim());
         assert!(report.warnings().is_empty());
     }
 

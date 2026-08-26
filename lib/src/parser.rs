@@ -75,11 +75,14 @@ fn duration(s: &str) -> Result<Duration, String> {
 
         let unit = UNITS
             .iter()
-            .find(|unit| rest[end..].starts_with(unit.as_str()))
+            .find(|unit| {
+                let s = unit.to_string();
+                rest[end..].starts_with(s.as_str())
+            })
             .copied()
             .ok_or_else(err)?;
 
-        rest = &rest[end + unit.as_str().len()..];
+        rest = &rest[end + unit.to_string().len()..];
         let seg = Duration::of(amount, unit);
         total = Some(total.map_or(seg, |acc| acc + seg));
     }

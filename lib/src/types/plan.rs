@@ -16,18 +16,19 @@ impl Plan {
     pub fn entries(&self) -> &[PlanEntry] {
         &self.entries
     }
+}
 
-    pub fn as_str(&self) -> String {
-        let mut out = String::new();
+impl std::fmt::Display for Plan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for entry in self.entries.iter() {
-            let line = format!(
-                "{:1} {}\n",
+            writeln!(
+                f,
+                "{} {}",
                 entry.blueprint_id(),
                 entry.planned_for().to_rfc3339()
-            );
-            out.push_str(&line);
+            )?;
         }
-        out
+        Ok(())
     }
 }
 

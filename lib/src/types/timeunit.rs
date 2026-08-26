@@ -22,17 +22,6 @@ pub enum TimeUnit {
 }
 
 impl TimeUnit {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            TimeUnit::Second => "s",
-            TimeUnit::Minute => "m",
-            TimeUnit::Hour => "h",
-            TimeUnit::Day => "d",
-            TimeUnit::Month => "mo",
-            TimeUnit::Year => "y",
-        }
-    }
-
     pub const fn seconds(&self) -> i64 {
         match self {
             TimeUnit::Second => 1,
@@ -47,7 +36,15 @@ impl TimeUnit {
 
 impl std::fmt::Display for TimeUnit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
+        let s = match self {
+            TimeUnit::Second => "s",
+            TimeUnit::Minute => "m",
+            TimeUnit::Hour => "h",
+            TimeUnit::Day => "d",
+            TimeUnit::Month => "mo",
+            TimeUnit::Year => "y",
+        };
+        f.write_str(s)
     }
 }
 
