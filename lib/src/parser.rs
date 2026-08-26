@@ -53,24 +53,39 @@ fn day(s: &str) -> Result<DayOfWeek, String> {
 }
 
 fn duration(s: &str) -> Result<Duration, String> {
-    for unit in [
+    // Longest suffix first so "mo" wins over "m".
+    const UNITS: [TimeUnit; 6] = [
+        TimeUnit::Month,
         TimeUnit::Second,
         TimeUnit::Minute,
         TimeUnit::Hour,
         TimeUnit::Day,
-        TimeUnit::Month,
         TimeUnit::Year,
-    ] {
-        if let Some(n) = s.strip_suffix(unit.as_str()) {
-            let amount: u64 = n
-                .parse()
-                .map_err(|_| format!("invalid duration '{s}' (expected e.g. 30m, 1h, 1d)"))?;
-            return Ok(Duration::of(amount, unit));
-        }
+    ];
+
+    let err = || format!("invalid duration '{s}' (expected e.g. 30m, 1h, 1d)");
+
+    let mut rest = s;
+    let mut total: Option<Duration> = None;
+
+    while !rest.is_empty() {
+        let end = rest
+            .find(|c: char| !c.is_ascii_digit())
+            .unwrap_or(rest.len());
+        let amount: u64 = rest[..end].parse().map_err(|_| err())?;
+
+        let unit = UNITS
+            .iter()
+            .find(|unit| rest[end..].starts_with(unit.as_str()))
+            .copied()
+            .ok_or_else(err)?;
+
+        rest = &rest[end + unit.as_str().len()..];
+        let seg = Duration::of(amount, unit);
+        total = Some(total.map_or(seg, |acc| acc + seg));
     }
-    Err(format!(
-        "invalid duration '{s}' (expected e.g. 30m, 1h, 1d)"
-    ))
+
+    total.ok_or_else(err)
 }
 
 fn recurrence(s: &str) -> Result<Recurrence, String> {
@@ -193,6 +208,8 @@ mod test {
         assert_eq!(Ok(Duration::days(1)), duration("1d"));
         assert_eq!(Ok(Duration::of(3, TimeUnit::Month)), duration("3mo"));
         assert_eq!(Ok(Duration::of(2, TimeUnit::Year)), duration("2y"));
+        assert_eq!(Ok(Duration::of(5400, TimeUnit::Second)), duration("1h30m"));
+        assert_eq!(Ok(Duration::of(36, TimeUnit::Hour)), duration("1d12h"));
         assert!(duration("3").is_err());
         assert!(duration("abc").is_err());
     }
