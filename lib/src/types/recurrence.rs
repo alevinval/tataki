@@ -1,5 +1,3 @@
-use chrono::DateTime;
-use chrono::Local;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -43,12 +41,10 @@ impl Recurrence {
         }
     }
 
-    /// Returns a `ts` with the spacing of the recurrence applied.
-    pub fn spaced(self, ts: DateTime<Local>) -> DateTime<Local> {
+    /// Returns the spacing between occurrences.
+    pub const fn every(self) -> Duration {
         match self {
-            Recurrence::Times { every, .. } | Recurrence::Period { every } => {
-                ts + every.timedelta()
-            }
+            Recurrence::Times { every, .. } | Recurrence::Period { every } => every,
         }
     }
 }
@@ -71,10 +67,7 @@ impl std::fmt::Display for Recurrence {
 #[cfg(test)]
 mod test {
 
-    use chrono::TimeDelta;
-
     use super::*;
-    use crate::test::d;
     use crate::types::TimeUnit;
 
     #[test]
@@ -144,21 +137,19 @@ mod test {
     }
 
     #[test]
-    fn test_spaced() {
-        let ts = d(2026, 10, 23, 0, 0, 0);
-
+    fn test_every() {
         let sut = Recurrence::once();
-        assert_eq!(ts, sut.spaced(ts));
+        assert_eq!(Duration::zero(), sut.every());
 
         let sut = Recurrence::Period {
             every: Duration::days(1),
         };
-        assert_eq!(ts + TimeDelta::days(1), sut.spaced(ts));
+        assert_eq!(Duration::days(1), sut.every());
 
         let sut = Recurrence::Times {
             count: 7,
             every: Duration::days(3),
         };
-        assert_eq!(ts + TimeDelta::days(3), sut.spaced(ts));
+        assert_eq!(Duration::days(3), sut.every());
     }
 }

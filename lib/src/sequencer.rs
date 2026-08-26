@@ -90,13 +90,13 @@ impl Sequencer {
         availability: Availability,
         ts: DateTime<Local>,
     ) -> DateTime<Local> {
-        let spaced = recurrence.spaced(ts);
+        let next = ts + recurrence.every().timedelta();
         let inside_window = availability.contains(ts);
 
         if inside_window && availability.window_end_after(ts).is_none() {
-            spaced
+            next
         } else {
-            spaced - availability.backward_delta_chrono(ts)
+            next - availability.backward_delta_chrono(ts)
         }
     }
 }
