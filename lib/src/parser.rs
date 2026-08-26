@@ -90,7 +90,7 @@ fn duration(s: &str) -> Result<Duration, String> {
 
 fn recurrence(s: &str) -> Result<Recurrence, String> {
     match s {
-        "once" => Ok(Recurrence::Once),
+        "once" => Ok(Recurrence::once()),
         "daily" => Ok(Recurrence::Period {
             every: Duration::days(1),
         }),
@@ -124,7 +124,7 @@ fn recurrence(s: &str) -> Result<Recurrence, String> {
 /// `^{count,spacing}`.
 fn caret(s: &str) -> Result<Recurrence, String> {
     if s == "1" {
-        return Ok(Recurrence::Once);
+        return Ok(Recurrence::once());
     }
     if let Some(body) = s.strip_prefix('{').and_then(|b| b.strip_suffix('}')) {
         let (count, spacing) = body.split_once(',').ok_or_else(|| {
@@ -222,7 +222,7 @@ mod test {
 
     #[test]
     fn test_recurrence() {
-        assert_eq!(Ok(Recurrence::Once), recurrence("once"));
+        assert_eq!(Ok(Recurrence::once()), recurrence("once"));
         assert_eq!(
             Ok(Recurrence::Period {
                 every: Duration::days(1)
@@ -253,7 +253,7 @@ mod test {
             }),
             recurrence("every 3mo")
         );
-        assert_eq!(Ok(Recurrence::Once), recurrence("^1"));
+        assert_eq!(Ok(Recurrence::once()), recurrence("^1"));
         assert_eq!(
             Ok(Recurrence::Times {
                 count: 3,
@@ -389,7 +389,7 @@ mod test {
     #[test]
     fn test_roundtrip_recurrence() {
         let suts = [
-            Recurrence::Once,
+            Recurrence::once(),
             Recurrence::Times {
                 count: 3,
                 every: Duration::days(2),

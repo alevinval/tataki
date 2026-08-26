@@ -8,9 +8,6 @@ use crate::types::Duration;
 /// Recurrence of an event.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Recurrence {
-    /// Occurs exactly once, does not repeat.
-    Once,
-
     /// Repeats a fixed number of times at regular intervals.
     ///
     /// The event occurs `count` times, with each occurrence spaced
@@ -41,7 +38,6 @@ impl Recurrence {
     /// repetitions.
     pub const fn remaining(self) -> Option<usize> {
         match self {
-            Recurrence::Once => Some(1),
             Recurrence::Times { count, .. } => Some(count),
             Recurrence::Period { .. } => None,
         }
@@ -50,7 +46,6 @@ impl Recurrence {
     /// Returns a `ts` with the spacing of the recurrence applied.
     pub fn spaced(self, ts: DateTime<Local>) -> DateTime<Local> {
         match self {
-            Recurrence::Once => ts,
             Recurrence::Times { every, .. } | Recurrence::Period { every } => {
                 ts + every.timedelta()
             }
@@ -61,7 +56,9 @@ impl Recurrence {
 impl std::fmt::Display for Recurrence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let args = match self {
-            Recurrence::Once => format_args!("^1"),
+            Recurrence::Times { count: 1, every } if *every == Duration::zero() => {
+                format_args!("^1")
+            }
             Recurrence::Times { count, every } => {
                 format_args!("^{{{},{}}}", *count, *every)
             }
@@ -82,7 +79,7 @@ mod test {
 
     #[test]
     fn test_display() {
-        let sut = Recurrence::Once;
+        let sut = Recurrence::once();
         assert_eq!("^1", sut.to_string());
 
         let sut = Recurrence::Times {
@@ -112,7 +109,7 @@ mod test {
 
     #[test]
     fn test_remaining() {
-        let sut = Recurrence::Once;
+        let sut = Recurrence::once();
         assert_eq!(Some(1), sut.remaining());
 
         let sut = Recurrence::Period {
@@ -130,7 +127,7 @@ mod test {
     #[test]
     fn test_serde_roundtrip() {
         let suts = [
-            Recurrence::Once,
+            Recurrence::once(),
             Recurrence::Times {
                 count: 3,
                 every: Duration::days(2),
@@ -150,7 +147,7 @@ mod test {
     fn test_spaced() {
         let ts = d(2026, 10, 23, 0, 0, 0);
 
-        let sut = Recurrence::Once;
+        let sut = Recurrence::once();
         assert_eq!(ts, sut.spaced(ts));
 
         let sut = Recurrence::Period {
