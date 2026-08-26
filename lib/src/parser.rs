@@ -92,21 +92,21 @@ fn recurrence(s: &str) -> Result<Recurrence, String> {
     match s {
         "once" => Ok(Recurrence::Once),
         "daily" => Ok(Recurrence::Period {
-            spacing: Duration::days(1),
+            every: Duration::days(1),
         }),
         "weekly" => Ok(Recurrence::Period {
-            spacing: Duration::of(7, TimeUnit::Day),
+            every: Duration::of(7, TimeUnit::Day),
         }),
         "monthly" => Ok(Recurrence::Period {
-            spacing: Duration::of(1, TimeUnit::Month),
+            every: Duration::of(1, TimeUnit::Month),
         }),
         "yearly" => Ok(Recurrence::Period {
-            spacing: Duration::of(1, TimeUnit::Year),
+            every: Duration::of(1, TimeUnit::Year),
         }),
         _ => {
             if let Some(spacing) = s.strip_prefix("every ") {
                 return Ok(Recurrence::Period {
-                    spacing: duration(spacing)?,
+                    every: duration(spacing)?,
                 });
             }
             if let Some(body) = s.strip_prefix('^') {
@@ -135,11 +135,11 @@ fn caret(s: &str) -> Result<Recurrence, String> {
             .map_err(|_| format!("invalid recurrence '^{{{s}}}' (expected ^{{count,spacing}})"))?;
         return Ok(Recurrence::Times {
             count,
-            spacing: duration(spacing)?,
+            every: duration(spacing)?,
         });
     }
     Ok(Recurrence::Period {
-        spacing: duration(s)?,
+        every: duration(s)?,
     })
 }
 
@@ -225,31 +225,31 @@ mod test {
         assert_eq!(Ok(Recurrence::Once), recurrence("once"));
         assert_eq!(
             Ok(Recurrence::Period {
-                spacing: Duration::days(1)
+                every: Duration::days(1)
             }),
             recurrence("daily")
         );
         assert_eq!(
             Ok(Recurrence::Period {
-                spacing: Duration::of(7, TimeUnit::Day)
+                every: Duration::of(7, TimeUnit::Day)
             }),
             recurrence("weekly")
         );
         assert_eq!(
             Ok(Recurrence::Period {
-                spacing: Duration::of(1, TimeUnit::Month)
+                every: Duration::of(1, TimeUnit::Month)
             }),
             recurrence("monthly")
         );
         assert_eq!(
             Ok(Recurrence::Period {
-                spacing: Duration::of(1, TimeUnit::Year)
+                every: Duration::of(1, TimeUnit::Year)
             }),
             recurrence("yearly")
         );
         assert_eq!(
             Ok(Recurrence::Period {
-                spacing: Duration::of(3, TimeUnit::Month)
+                every: Duration::of(3, TimeUnit::Month)
             }),
             recurrence("every 3mo")
         );
@@ -257,13 +257,13 @@ mod test {
         assert_eq!(
             Ok(Recurrence::Times {
                 count: 3,
-                spacing: Duration::days(2)
+                every: Duration::days(2)
             }),
             recurrence("^{3,2d}")
         );
         assert_eq!(
             Ok(Recurrence::Period {
-                spacing: Duration::of(3, TimeUnit::Year)
+                every: Duration::of(3, TimeUnit::Year)
             }),
             recurrence("^3y")
         );
@@ -315,7 +315,7 @@ mod test {
                 "2".to_string(),
                 Priority::Norm,
                 Recurrence::Period {
-                    spacing: Duration::days(1)
+                    every: Duration::days(1)
                 },
                 Duration::hours(1),
                 Availability::new(WeekSlot::full(), HourSlot::range(8, 12)),
@@ -327,7 +327,7 @@ mod test {
                 "2".to_string(),
                 Priority::Norm,
                 Recurrence::Period {
-                    spacing: Duration::days(1)
+                    every: Duration::days(1)
                 },
                 Duration::hours(1),
                 Availability::workdays(HourSlot::range(8, 12)),
@@ -392,10 +392,10 @@ mod test {
             Recurrence::Once,
             Recurrence::Times {
                 count: 3,
-                spacing: Duration::days(2),
+                every: Duration::days(2),
             },
             Recurrence::Period {
-                spacing: Duration::of(3, TimeUnit::Month),
+                every: Duration::of(3, TimeUnit::Month),
             },
         ];
         for sut in suts {

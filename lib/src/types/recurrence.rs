@@ -15,13 +15,13 @@ pub enum Recurrence {
     ///
     /// The event occurs `count` times, with each occurrence spaced
     /// by `every` duration. Stops automatically after the final occurrence.
-    Times { count: usize, spacing: Duration },
+    Times { count: usize, every: Duration },
 
     /// Repeats indefinitely at regular intervals.
     ///
     /// The event repeats forever, with each occurrence spaced by
-    /// `spacing` duration. Does not stop unless explicitly cancelled.
-    Period { spacing: Duration },
+    /// `every` duration. Does not stop unless explicitly cancelled.
+    Period { every: Duration },
 }
 
 impl Recurrence {
@@ -41,8 +41,8 @@ impl Recurrence {
     pub fn spaced(self, ts: DateTime<Local>) -> DateTime<Local> {
         match self {
             Recurrence::Once => ts,
-            Recurrence::Times { spacing, .. } | Recurrence::Period { spacing } => {
-                ts + spacing.timedelta()
+            Recurrence::Times { every, .. } | Recurrence::Period { every } => {
+                ts + every.timedelta()
             }
         }
     }
@@ -52,10 +52,10 @@ impl std::fmt::Display for Recurrence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let args = match self {
             Recurrence::Once => format_args!("^1"),
-            Recurrence::Times { count, spacing } => {
-                format_args!("^{{{},{}}}", *count, *spacing)
+            Recurrence::Times { count, every } => {
+                format_args!("^{{{},{}}}", *count, *every)
             }
-            Recurrence::Period { spacing } => format_args!("^{}", *spacing),
+            Recurrence::Period { every: spacing } => format_args!("^{}", *spacing),
         };
         f.write_fmt(args)
     }
@@ -77,12 +77,12 @@ mod test {
 
         let sut = Recurrence::Times {
             count: 3,
-            spacing: Duration::days(2),
+            every: Duration::days(2),
         };
         assert_eq!("^{3,2d}", sut.to_string());
 
         let sut = Recurrence::Period {
-            spacing: Duration::of(3, TimeUnit::Year),
+            every: Duration::of(3, TimeUnit::Year),
         };
         assert_eq!("^3y", sut.to_string());
     }
@@ -93,13 +93,13 @@ mod test {
         assert_eq!(Some(1), sut.remaining());
 
         let sut = Recurrence::Period {
-            spacing: Duration::days(1),
+            every: Duration::days(1),
         };
         assert_eq!(None, sut.remaining());
 
         let sut = Recurrence::Times {
             count: 7,
-            spacing: Duration::days(1),
+            every: Duration::days(1),
         };
         assert_eq!(Some(7), sut.remaining());
     }
@@ -110,10 +110,10 @@ mod test {
             Recurrence::Once,
             Recurrence::Times {
                 count: 3,
-                spacing: Duration::days(2),
+                every: Duration::days(2),
             },
             Recurrence::Period {
-                spacing: Duration::of(3, TimeUnit::Month),
+                every: Duration::of(3, TimeUnit::Month),
             },
         ];
         for sut in suts {
@@ -131,13 +131,13 @@ mod test {
         assert_eq!(ts, sut.spaced(ts));
 
         let sut = Recurrence::Period {
-            spacing: Duration::days(1),
+            every: Duration::days(1),
         };
         assert_eq!(ts + TimeDelta::days(1), sut.spaced(ts));
 
         let sut = Recurrence::Times {
             count: 7,
-            spacing: Duration::days(3),
+            every: Duration::days(3),
         };
         assert_eq!(ts + TimeDelta::days(3), sut.spaced(ts));
     }

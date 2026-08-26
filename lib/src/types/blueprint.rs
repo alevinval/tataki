@@ -113,7 +113,7 @@ mod test {
             Duration::hours(1),
             Priority::Idle,
             Recurrence::Period {
-                spacing: Duration::of(1, TimeUnit::Year),
+                every: Duration::of(1, TimeUnit::Year),
             },
             Availability::new(WeekSlot::full(), HourSlot::range(10, 13)),
         )
@@ -130,7 +130,7 @@ mod test {
             Duration::hours(1),
             Priority::Crit,
             Recurrence::Period {
-                spacing: Duration::of(3, TimeUnit::Month),
+                every: Duration::of(3, TimeUnit::Month),
             },
             Availability::anytime(WeekSlot::workdays()),
         );
@@ -142,7 +142,7 @@ mod test {
             Duration::hours(1),
             Priority::Crit,
             Recurrence::Period {
-                spacing: Duration::of(3, TimeUnit::Month),
+                every: Duration::of(3, TimeUnit::Month),
             },
             Availability::workdays(HourSlot::range(8, 12)),
         );
@@ -162,7 +162,7 @@ mod test {
             Duration::hours(1),
             Priority::Crit,
             Recurrence::Period {
-                spacing: Duration::of(3, TimeUnit::Month),
+                every: Duration::of(3, TimeUnit::Month),
             },
             Availability::workdays(HourSlot::range(8, 12)),
         );

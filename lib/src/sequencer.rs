@@ -116,7 +116,7 @@ mod test {
         let sut = Sequencer::new(
             Recurrence::Times {
                 count: 3,
-                spacing: Duration::hours(4),
+                every: Duration::hours(4),
             },
             Availability::new(WeekSlot::full(), HourSlot::fixed(3)),
             None,
@@ -137,7 +137,7 @@ mod test {
         let mut sut = Sequencer::new(
             Recurrence::Times {
                 count: 2,
-                spacing: Duration::days(2),
+                every: Duration::days(2),
             },
             Availability::new(WeekSlot::full(), HourSlot::range(3, 5)),
             None,
@@ -171,7 +171,7 @@ mod test {
     fn test_next_minimum_ts_keeps_exact_spacing_for_continuous_availability() {
         let availability = Availability::full_week_all_day();
         let recurrence = Recurrence::Period {
-            spacing: Duration::hours(1),
+            every: Duration::hours(1),
         };
 
         let ts = d(2026, 6, 15, 1, 30, 0);
@@ -183,7 +183,7 @@ mod test {
     fn test_next_minimum_ts_snaps_to_next_window_start_after_window_boundary() {
         let availability = Availability::new(WeekSlot::full(), HourSlot::fixed(8));
         let recurrence = Recurrence::Period {
-            spacing: Duration::hours(6),
+            every: Duration::hours(6),
         };
 
         let ts_0800 = d(2026, 1, 1, 8, 0, 0);
@@ -203,7 +203,7 @@ mod test {
     fn test_accepts_combined_availability() {
         let sut = Sequencer::new(
             Recurrence::Period {
-                spacing: Duration::days(1),
+                every: Duration::days(1),
             },
             Availability::workdays(HourSlot::range(8, 12)),
             None,
@@ -218,7 +218,7 @@ mod test {
     fn test_next_candidate_at_or_after() {
         let sut = Sequencer::new(
             Recurrence::Period {
-                spacing: Duration::days(1),
+                every: Duration::days(1),
             },
             Availability::workdays(HourSlot::range(8, 12)),
             Some(d(2026, 6, 19, 9, 30, 0)),
