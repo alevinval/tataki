@@ -38,6 +38,16 @@ impl HourSlot {
         self.to
     }
 
+    /// Whether the slot covers all 24 hours of the day.
+    pub const fn is_full(&self) -> bool {
+        let hours = if self.from <= self.to {
+            self.to - self.from + 1
+        } else {
+            24 - self.from + self.to + 1
+        };
+        hours == 24
+    }
+
     pub fn matches(&self, hour: u32) -> bool {
         debug_assert!(hour < 24, "hour must be <24, instead it was {hour}");
 
@@ -74,6 +84,11 @@ mod test {
             assert!(!sut.matches(11));
             assert!(!sut.matches(13));
         }
+
+        #[test]
+        fn test_is_full() {
+            assert!(!HourSlot::fixed(12).is_full());
+        }
     }
 
     mod range {
@@ -89,6 +104,13 @@ mod test {
 
             assert!(!sut.matches(4));
             assert!(!sut.matches(7));
+        }
+
+        #[test]
+        fn test_is_full() {
+            assert!(HourSlot::range(0, 23).is_full());
+            assert!(HourSlot::range(1, 0).is_full());
+            assert!(!HourSlot::range(8, 3).is_full());
         }
     }
 

@@ -9,6 +9,7 @@ use chrono::Timelike;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::parser;
 use crate::types::Duration;
 use crate::types::HourSlot;
 use crate::types::WeekSlot;
@@ -20,7 +21,6 @@ pub struct Availability {
 }
 
 impl Availability {
-    const ALL_DAY_HOURS: HourSlot = HourSlot::range(0, 23);
     const MAX_DAY_SCAN: u64 = 7;
     const MAX_HOUR_SCAN: i64 = 24 * 8;
 
@@ -28,20 +28,14 @@ impl Availability {
         Self { days, hours }
     }
 
+    /// Create an availability from a DSL string:
+    /// `{days} {hours}`, where either part may be omitted.
+    pub fn from_dsl(s: &str) -> Self {
+        parser::availability(s).unwrap()
+    }
+
     const fn start_hour(&self) -> u32 {
         self.hours.from()
-    }
-
-    pub const fn workdays(hours: HourSlot) -> Self {
-        Self::new(WeekSlot::workdays(), hours)
-    }
-
-    pub const fn anytime(days: WeekSlot) -> Self {
-        Self::new(days, Self::ALL_DAY_HOURS)
-    }
-
-    pub const fn full_week_all_day() -> Self {
-        Self::new(WeekSlot::full(), Self::ALL_DAY_HOURS)
     }
 
     pub const fn days(&self) -> WeekSlot {
@@ -135,10 +129,7 @@ impl Availability {
 
 impl std::fmt::Display for Availability {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let full_week = self.days == WeekSlot::full();
-        let all_day = self.hours == Self::ALL_DAY_HOURS;
-
-        match (full_week, all_day) {
+        match (self.days.is_full(), self.hours.is_full()) {
             (true, true) => f.write_str("Mon-Sun 00:00-23:00"),
             (true, false) => self.hours.fmt(f),
             (false, true) => self.days.fmt(f),
@@ -157,7 +148,7 @@ mod test {
 
     #[test]
     fn test_contains() {
-        let sut = Availability::workdays(HourSlot::range(8, 17));
+        let sut = Availability::from_dsl("Mon-Fri 08:00-17:00");
 
         assert!(sut.contains(d(2026, 10, 26, 9, 0, 0)));
         assert!(!sut.contains(d(2026, 10, 24, 9, 0, 0)));
@@ -166,7 +157,7 @@ mod test {
 
     #[test]
     fn test_constructors() {
-        let sut = Availability::anytime(WeekSlot::fixed(DayOfWeek::Wed));
+        let sut = Availability::from_dsl("Wed");
         assert_eq!(
             Availability::new(WeekSlot::fixed(DayOfWeek::Wed), HourSlot::range(0, 23)),
             sut
@@ -174,13 +165,13 @@ mod test {
 
         assert_eq!(
             Availability::new(WeekSlot::full(), HourSlot::range(0, 23)),
-            Availability::full_week_all_day()
+            Availability::from_dsl("Mon-Sun 00:00-23:00")
         );
     }
 
     #[test]
     fn test_backward_delta_chrono() {
-        let sut = Availability::workdays(HourSlot::range(8, 12));
+        let sut = Availability::from_dsl("Mon-Fri 08:00-12:00");
 
         assert_eq!(
             TimeDelta::hours(1),
@@ -195,7 +186,7 @@ mod test {
             sut.backward_delta_chrono(d(2026, 6, 20, 10, 0, 0))
         );
 
-        let overnight = Availability::anytime(WeekSlot::full());
+        let overnight = Availability::from_dsl("00:00-23:00");
         assert_eq!(
             TimeDelta::hours(9) + TimeDelta::minutes(30),
             overnight.backward_delta_chrono(d(2026, 6, 22, 9, 30, 0))
@@ -204,7 +195,7 @@ mod test {
 
     #[test]
     fn test_next_window_start_at_or_after() {
-        let sut = Availability::workdays(HourSlot::range(8, 12));
+        let sut = Availability::from_dsl("Mon-Fri 08:00-12:00");
 
         assert_eq!(
             d(2026, 6, 22, 9, 0, 0),
@@ -226,7 +217,7 @@ mod test {
 
     #[test]
     fn test_window_end_after() {
-        let sut = Availability::workdays(HourSlot::range(8, 12));
+        let sut = Availability::from_dsl("Mon-Fri 08:00-12:00");
         assert_eq!(
             Some(d(2026, 6, 22, 13, 0, 0)),
             sut.window_end_after(d(2026, 6, 22, 9, 30, 0))
@@ -238,7 +229,7 @@ mod test {
             sut.window_end_after(d(2026, 6, 22, 8, 30, 0))
         );
 
-        let sut = Availability::anytime(WeekSlot::workdays());
+        let sut = Availability::from_dsl("Mon-Fri");
         assert_eq!(
             Some(d(2026, 6, 27, 0, 0, 0)),
             sut.window_end_after(d(2026, 6, 22, 9, 30, 0))
@@ -247,7 +238,7 @@ mod test {
 
     #[test]
     fn test_can_fit() {
-        let sut = Availability::workdays(HourSlot::range(8, 12));
+        let sut = Availability::from_dsl("Mon-Fri 08:00-12:00");
         assert!(sut.can_fit(d(2026, 6, 22, 11, 0, 0), Duration::hours(2)));
         assert!(!sut.can_fit(d(2026, 6, 22, 12, 30, 0), Duration::hours(1)));
         assert!(!sut.can_fit(d(2026, 6, 20, 10, 0, 0), Duration::hours(1)));
@@ -259,19 +250,29 @@ mod test {
             "08:00-12:00",
             Availability::new(WeekSlot::full(), HourSlot::range(8, 12)).to_string()
         );
-        assert_eq!(
-            "Mon-Fri",
-            Availability::anytime(WeekSlot::workdays()).to_string()
-        );
+        assert_eq!("Mon-Fri", Availability::from_dsl("Mon-Fri").to_string());
         assert_eq!(
             "Mon-Fri 08:00-12:00",
-            Availability::workdays(HourSlot::range(8, 12)).to_string()
+            Availability::from_dsl("Mon-Fri 08:00-12:00").to_string()
         );
     }
 
     #[test]
+    fn test_from_dsl() {
+        let suts = [
+            Availability::new(WeekSlot::full(), HourSlot::fixed(8)),
+            Availability::new(WeekSlot::full(), HourSlot::range(8, 12)),
+            Availability::from_dsl("Wed"),
+            Availability::from_dsl("Mon-Fri 08:00-12:00"),
+        ];
+        for sut in suts {
+            assert_eq!(sut, Availability::from_dsl(&sut.to_string()));
+        }
+    }
+
+    #[test]
     fn test_serde_roundtrip() {
-        let sut = Availability::workdays(HourSlot::range(8, 12));
+        let sut = Availability::from_dsl("Mon-Fri 08:00-12:00");
         let json = serde_json::to_string(&sut).unwrap();
         let back: Availability = serde_json::from_str(&json).unwrap();
         assert_eq!(sut, back);

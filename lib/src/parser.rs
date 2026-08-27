@@ -23,7 +23,7 @@ pub fn blueprint(
     let priority = parts.next().map(priority).transpose()?.ok_or_else(err)?;
     let recurrence = parts.next().map(recurrence).transpose()?.ok_or_else(err)?;
     let duration = parts.next().map(duration).transpose()?.ok_or_else(err)?;
-    let availability = availability(parts.collect::<Vec<_>>().as_slice()).ok_or_else(err)??;
+    let availability = availability(&parts.collect::<Vec<_>>().join(" "))?;
     Ok((id.to_string(), priority, recurrence, duration, availability))
 }
 
@@ -114,17 +114,17 @@ fn recurrence(s: &str) -> Result<Recurrence, String> {
     })
 }
 
-fn availability(parts: &[&str]) -> Option<Result<Availability, String>> {
-    match parts {
+pub fn availability(s: &str) -> Result<Availability, String> {
+    let parts: Vec<&str> = s.split_whitespace().collect();
+    let err = || format!("invalid availability '{s}' (expected e.g. 'Mon-Fri 08:00-12:00')");
+    match parts.as_slice() {
         [hours] if hours.contains(':') => {
-            Some(hour_slot(hours).map(|hours| Availability::new(WeekSlot::full(), hours)))
+            hour_slot(hours).map(|hours| Availability::new(WeekSlot::full(), hours))
         }
-        [days] => Some(week_slot(days).map(Availability::anytime)),
-        [days, hours] => Some(
-            week_slot(days)
-                .and_then(|days| hour_slot(hours).map(|hours| Availability::new(days, hours))),
-        ),
-        _ => None,
+        [days] => week_slot(days).map(|days| Availability::new(days, HourSlot::range(0, 23))),
+        [days, hours] => week_slot(days)
+            .and_then(|days| hour_slot(hours).map(|hours| Availability::new(days, hours))),
+        _ => Err(err()),
     }
 }
 
@@ -246,19 +246,16 @@ mod test {
     #[test]
     fn test_availability() {
         assert_eq!(
-            Some(Ok(Availability::new(WeekSlot::full(), HourSlot::fixed(8)))),
-            availability(&["08:00"])
+            Ok(Availability::new(WeekSlot::full(), HourSlot::fixed(8))),
+            availability("08:00")
         );
         assert_eq!(
-            Some(Ok(Availability::workdays(HourSlot::range(8, 12)))),
-            availability(&["Mon-Fri", "08:00-12:00"])
+            Ok(Availability::from_dsl("Mon-Fri 08:00-12:00")),
+            availability("Mon-Fri 08:00-12:00")
         );
-        assert_eq!(
-            Some(Ok(Availability::anytime(WeekSlot::fixed(DayOfWeek::Wed)))),
-            availability(&["wed"])
-        );
-        assert_eq!(None, availability(&[]));
-        assert_eq!(None, availability(&["Mon", "08:00", "extra"]));
+        assert_eq!(Ok(Availability::from_dsl("Wed")), availability("wed"));
+        assert!(availability("").is_err());
+        assert!(availability("Mon 08:00 extra").is_err());
     }
 
     #[test]
@@ -283,7 +280,7 @@ mod test {
                     every: Duration::days(1)
                 },
                 Duration::hours(1),
-                Availability::workdays(HourSlot::range(8, 12)),
+                Availability::from_dsl("Mon-Fri 08:00-12:00"),
             )),
             blueprint("2 P2 ^1d 1h Mon-Fri 08:00-12:00")
         );
@@ -361,15 +358,11 @@ mod test {
         let suts = [
             Availability::new(WeekSlot::full(), HourSlot::fixed(8)),
             Availability::new(WeekSlot::full(), HourSlot::range(8, 12)),
-            Availability::anytime(WeekSlot::fixed(DayOfWeek::Wed)),
-            Availability::workdays(HourSlot::range(8, 12)),
+            Availability::from_dsl("Wed"),
+            Availability::from_dsl("Mon-Fri 08:00-12:00"),
         ];
         for sut in suts {
-            let parts = sut.to_string();
-            assert_eq!(
-                Some(Ok(sut)),
-                availability(&parts.split_whitespace().collect::<Vec<_>>())
-            );
+            assert_eq!(Ok(sut), availability(&sut.to_string()));
         }
     }
 }

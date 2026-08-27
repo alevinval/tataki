@@ -132,7 +132,7 @@ mod test {
             Recurrence::Period {
                 every: Duration::of(3, TimeUnit::Month),
             },
-            Availability::anytime(WeekSlot::workdays()),
+            Availability::from_dsl("Mon-Fri"),
         );
         assert_eq!("1 P0 ^3mo 1h Mon-Fri", sut.to_string());
 
@@ -144,7 +144,7 @@ mod test {
             Recurrence::Period {
                 every: Duration::of(3, TimeUnit::Month),
             },
-            Availability::workdays(HourSlot::range(8, 12)),
+            Availability::from_dsl("Mon-Fri 08:00-12:00"),
         );
         assert_eq!("1 P0 ^3mo 1h Mon-Fri 08:00-12:00", sut.to_string());
     }
@@ -164,7 +164,7 @@ mod test {
             Recurrence::Period {
                 every: Duration::of(3, TimeUnit::Month),
             },
-            Availability::workdays(HourSlot::range(8, 12)),
+            Availability::from_dsl("Mon-Fri 08:00-12:00"),
         );
         let json = serde_json::to_string(&sut).unwrap();
         let back: Blueprint = serde_json::from_str(&json).unwrap();

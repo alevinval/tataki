@@ -46,6 +46,21 @@ impl WeekSlot {
         }
     }
 
+    /// Returns `true` if the slot covers all seven days of the week.
+    pub fn is_full(&self) -> bool {
+        [
+            DayOfWeek::Mon,
+            DayOfWeek::Tue,
+            DayOfWeek::Wed,
+            DayOfWeek::Thu,
+            DayOfWeek::Fri,
+            DayOfWeek::Sat,
+            DayOfWeek::Sun,
+        ]
+        .iter()
+        .all(|day| self.matches(*day))
+    }
+
     pub fn matches(&self, day: DayOfWeek) -> bool {
         if self.from <= self.to {
             (self.from..=self.to).contains(&day)
@@ -95,6 +110,20 @@ mod test {
 
             assert!(!sut.matches(DayOfWeek::Thu));
             assert!(!sut.matches(DayOfWeek::Tue));
+        }
+    }
+
+    mod is_full {
+        use super::*;
+
+        #[test]
+        fn test_is_full() {
+            assert!(WeekSlot::full().is_full());
+            assert!(WeekSlot::range(DayOfWeek::Sat, DayOfWeek::Fri).is_full());
+            assert!(!WeekSlot::workdays().is_full());
+            assert!(!WeekSlot::weekend().is_full());
+            assert!(!WeekSlot::fixed(DayOfWeek::Mon).is_full());
+            assert!(!WeekSlot::range(DayOfWeek::Tue, DayOfWeek::Sun).is_full());
         }
     }
 

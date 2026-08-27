@@ -169,7 +169,7 @@ mod test {
 
     #[test]
     fn test_next_minimum_ts_keeps_exact_spacing_for_continuous_availability() {
-        let availability = Availability::full_week_all_day();
+        let availability = Availability::from_dsl("Mon-Sun 00:00-23:00");
         let recurrence = Recurrence::Period {
             every: Duration::hours(1),
         };
@@ -205,7 +205,7 @@ mod test {
             Recurrence::Period {
                 every: Duration::days(1),
             },
-            Availability::workdays(HourSlot::range(8, 12)),
+            Availability::from_dsl("Mon-Fri 08:00-12:00"),
             None,
         );
 
@@ -220,7 +220,7 @@ mod test {
             Recurrence::Period {
                 every: Duration::days(1),
             },
-            Availability::workdays(HourSlot::range(8, 12)),
+            Availability::from_dsl("Mon-Fri 08:00-12:00"),
             Some(d(2026, 6, 19, 9, 30, 0)),
         );
 
